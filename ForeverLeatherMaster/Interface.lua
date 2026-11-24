@@ -78,12 +78,14 @@ local function CreateResultRow(parent, index)
         GameTooltip:Hide()
     end)
 
-    row.cost = MakeColumn(row, "", 105, "RIGHT")
-    row.cost:SetPoint("RIGHT", row, "RIGHT", -330, 0)
-    row.sale = MakeColumn(row, "", 105, "RIGHT")
-    row.sale:SetPoint("RIGHT", row, "RIGHT", -210, 0)
-    row.profit = MakeColumn(row, "", 105, "RIGHT")
-    row.profit:SetPoint("RIGHT", row, "RIGHT", -92, 0)
+    row.cost = MakeColumn(row, "", 110, "RIGHT")
+    row.cost:SetPoint("RIGHT", row, "RIGHT", -450, 0)
+    row.sale = MakeColumn(row, "", 110, "RIGHT")
+    row.sale:SetPoint("RIGHT", row, "RIGHT", -328, 0)
+    row.deposit = MakeColumn(row, "", 110, "RIGHT")
+    row.deposit:SetPoint("RIGHT", row, "RIGHT", -205, 0)
+    row.profit = MakeColumn(row, "", 110, "RIGHT")
+    row.profit:SetPoint("RIGHT", row, "RIGHT", -82, 0)
     row.margin = MakeColumn(row, "", 65, "RIGHT")
     row.margin:SetPoint("RIGHT", row, "RIGHT", -7, 0)
     row:Hide()
@@ -108,7 +110,7 @@ end
 function FLM:ShowWindow()
     if not window then
         window = CreateFrame("Frame", "ForeverLeatherMasterFrame", UIParent, "BasicFrameTemplateWithInset")
-        window:SetSize(790, 500)
+        window:SetSize(900, 500)
         window:SetPoint("CENTER")
         window:SetMovable(true)
         window:EnableMouse(true)
@@ -134,9 +136,24 @@ function FLM:ShowWindow()
         end)
         window.refreshButton:SetPoint("LEFT", window.scanButton, "RIGHT", 8, 0)
 
+        window.durationLabel = MakeFont(window, 11, "Durée :")
+        window.durationLabel:SetPoint("LEFT", window.refreshButton, "RIGHT", 14, 0)
+        window.durationButtons = {}
+        for _, hours in ipairs({2, 8, 24}) do
+            local button = MakeButton(window, hours .. " h", 48, function()
+                FLM:SetAuctionDuration(hours)
+            end)
+            if hours == 2 then
+                button:SetPoint("LEFT", window.durationLabel, "RIGHT", 6, 0)
+            else
+                button:SetPoint("LEFT", window.durationButtons[hours == 8 and 2 or 8], "RIGHT", 4, 0)
+            end
+            window.durationButtons[hours] = button
+        end
+
         window.status = MakeFont(window, 10, "")
         window.status:SetPoint("BOTTOMLEFT", 16, 13)
-        window.status:SetWidth(740)
+        window.status:SetWidth(850)
         window.status:SetJustifyH("LEFT")
 
         local header = CreateFrame("Frame", nil, window)
@@ -145,14 +162,16 @@ function FLM:ShowWindow()
         header:SetHeight(20)
         local hName = MakeColumn(header, "RECETTE", 270, "LEFT")
         hName:SetPoint("LEFT", 7, 0)
-        local hCost = MakeColumn(header, "COÛT FABRICATION", 105, "RIGHT")
-        hCost:SetPoint("RIGHT", header, "RIGHT", -330, 0)
-        local hSale = MakeColumn(header, "VENTE NETTE", 105, "RIGHT")
-        hSale:SetPoint("RIGHT", header, "RIGHT", -210, 0)
+        local hCost = MakeColumn(header, "COÛT FABRICATION", 110, "RIGHT")
+        hCost:SetPoint("RIGHT", header, "RIGHT", -450, 0)
+        local hSale = MakeColumn(header, "VENTE NETTE", 110, "RIGHT")
+        hSale:SetPoint("RIGHT", header, "RIGHT", -328, 0)
+        local hDeposit = MakeColumn(header, "DÉPÔT*", 110, "RIGHT")
+        hDeposit:SetPoint("RIGHT", header, "RIGHT", -205, 0)
 
         window.sortButton = CreateFrame("Button", nil, header)
-        window.sortButton:SetSize(105, 20)
-        window.sortButton:SetPoint("RIGHT", header, "RIGHT", -92, 0)
+        window.sortButton:SetSize(110, 20)
+        window.sortButton:SetPoint("RIGHT", header, "RIGHT", -82, 0)
         window.sortLabel = MakeFont(window.sortButton, 11, "BÉNÉFICE ▼", "GameFontNormal")
         window.sortLabel:SetAllPoints()
         window.sortLabel:SetJustifyH("RIGHT")
@@ -175,7 +194,7 @@ function FLM:ShowWindow()
         window.scroll:SetPoint("BOTTOMRIGHT", -30, 42)
         window.scroll:SetClipsChildren(true)
         window.scrollChild = CreateFrame("Frame", nil, window.scroll)
-        window.scrollChild:SetWidth(730)
+        window.scrollChild:SetWidth(840)
         window.scrollChild:SetHeight(1)
         window.scroll:SetScrollChild(window.scrollChild)
 
@@ -204,6 +223,16 @@ function FLM:RefreshWindow()
         row.name:SetText(deal.name or ("Recette " .. tostring(deal.recipeID or "?")))
         row.cost:SetText(self:FormatMoneyIcons(deal.materialCost))
         row.sale:SetText(self:FormatMoneyIcons(deal.netSale))
+        row.deposit:SetText(deal.depositCost and self:FormatMoneyIcons(deal.depositCost) or "—")
+        row.deposit:SetTextColor(0.95, 0.78, 0.35)
+        row.deposit:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText("Dépôt de mise en vente")
+            GameTooltip:AddLine("Rendu si l'objet se vend.", 1, 1, 1, true)
+            GameTooltip:AddLine("Perdu si l'annonce expire ou est annulée.", 1, 0.6, 0.5, true)
+            GameTooltip:Show()
+        end)
+        row.deposit:SetScript("OnLeave", function() GameTooltip:Hide() end)
         row.profit:SetText((deal.profit >= 0 and "+" or "-") .. self:FormatMoneyIcons(math.abs(deal.profit)))
         row.margin:SetText(string.format("%.1f%%", deal.margin or 0))
         if deal.profit >= 0 then
@@ -225,9 +254,13 @@ function FLM:RefreshWindow()
     local priceCount = CountEntries(self.DB.prices)
     local scanText = self.DB.lastScan and self.DB.lastScan > 0
         and date("%d/%m %H:%M", self.DB.lastScan) or "jamais"
+    local duration = tonumber(self.DB.ahDuration) or 8
+    for hours, button in pairs(window.durationButtons or {}) do
+        button:SetEnabled(hours ~= duration)
+    end
     window.status:SetText(string.format(
-        "%d recettes apprises | %d objets avec prix | %d recettes calculables | Scan : %s | Commission HDV : %.1f%%",
+        "%d recettes apprises | %d objets avec prix | %d recettes calculables | Scan : %s | Commission : %.0f%% | Durée : %dh",
         recipeCount, priceCount, #results, scanText,
-        (tonumber(self.DB.ahCut) or 0.05) * 100
+        (tonumber(self.DB.ahCut) or 0.05) * 100, duration
     ))
 end
