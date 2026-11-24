@@ -127,7 +127,7 @@ function FLM:ShowWindow()
 
         window.title = MakeFont(window, 14, "Forever CraftValue - Optimiseur de métiers")
         window.title:SetPoint("TOP", 0, -8)
-        window.help = MakeFont(window, 11, "Ouvre un métier, importe ses recettes, puis scanne l'HDV. Clique sur une recette pour l'ouvrir.")
+        window.help = MakeFont(window, 11, "Importe tes métiers puis lance un scan ciblé des objets utiles aux crafts. Le scan complet reste disponible.")
         window.help:SetPoint("TOPLEFT", 16, -38)
 
         window.professionButton = MakeButton(window, "Importer recettes", 135, function()
@@ -151,14 +151,18 @@ function FLM:ShowWindow()
         end)
         window.professionSelectButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
 
-        window.scanButton = MakeButton(window, "Scanner l'HDV", 115, function()
-            FLM:StartAuctionScan()
+        window.scanButton = MakeButton(window, "Scan ciblé", 105, function()
+            FLM:StartAuctionScan("targeted")
         end)
         window.scanButton:SetPoint("LEFT", window.professionSelectButton, "RIGHT", 8, 0)
-        window.refreshButton = MakeButton(window, "Actualiser", 100, function()
+        window.fullScanButton = MakeButton(window, "Scan complet", 100, function()
+            FLM:StartAuctionScan("full")
+        end)
+        window.fullScanButton:SetPoint("LEFT", window.scanButton, "RIGHT", 6, 0)
+        window.refreshButton = MakeButton(window, "Actualiser", 90, function()
             FLM:RefreshWindow()
         end)
-        window.refreshButton:SetPoint("LEFT", window.scanButton, "RIGHT", 8, 0)
+        window.refreshButton:SetPoint("LEFT", window.fullScanButton, "RIGHT", 6, 0)
 
         window.durationLabel = MakeFont(window, 11, "Durée :")
         window.durationLabel:SetPoint("LEFT", window.refreshButton, "RIGHT", 14, 0)
@@ -283,13 +287,14 @@ function FLM:RefreshWindow()
         window.professionSelectButton:SetText("Métier : " .. (self.DB.activeProfession or "—"))
     end
     local scanText = self.DB.lastScan and self.DB.lastScan > 0
-        and date("%d/%m %H:%M", self.DB.lastScan) or "jamais"
+        and (date("%d/%m %H:%M", self.DB.lastScan) .. " (" ..
+            (self.DB.lastScanMode == "full" and "complet" or "ciblé") .. ")") or "jamais"
     local duration = tonumber(self.DB.ahDuration) or 8
     for hours, button in pairs(window.durationButtons or {}) do
         button:SetEnabled(hours ~= duration)
     end
     window.status:SetText(string.format(
-        "%s | %d recettes apprises | %d objets avec prix | %d recettes calculables | Scan complet : %s | Prix consultés : actualisés automatiquement | Commission : %.0f%% | Durée : %dh",
+        "%s | %d recettes apprises | %d objets avec prix | %d recettes calculables | Dernier scan : %s | Prix consultés : MAJ auto | Commission : %.0f%% | Durée : %dh",
         self.DB.activeProfession or "Aucun métier sélectionné", recipeCount, priceCount, #results, scanText,
         (tonumber(self.DB.ahCut) or 0.05) * 100, duration
     ))
