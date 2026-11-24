@@ -35,4 +35,5 @@ Limites
 - L'import dépend des API de métiers disponibles sur le client.
 - Les recettes sans composants exploitables ne sont pas intégrées.
 - Les composants alternatifs sont simplifiés par la logique actuelle de l'optimiseur.
-- Le scan ciblé utilise la réplication HDV du client, puis filtre localement les annonces : le serveur transmet donc toujours la liste répliquée complète. Le gain porte sur le traitement et le stockage, pas sur le volume téléchargé.\n- Le prix retenu est le plus bas observé dans le scan ; ce n'est pas une moyenne de marché.
+- Le scan ciblé utilise la réplication HDV du client, puis filtre localement les annonces : le serveur transmet donc toujours la liste répliquée complète. Le gain porte sur le traitement et le stockage, pas sur le volume téléchargé.
+- Le prix retenu est le plus bas observé dans le scan ; ce n'est pas une moyenne de marché.
