@@ -24,44 +24,12 @@ function FLM:RecordAuctionPrice(itemID, totalBuyout, stackCount)
     return true
 end
 
--- Regroupe les annonces dont les prix sont proches (écart maximal de 20 %).
--- Retient le groupe le plus représenté, puis sa médiane : une annonce isolée
--- très basse ne peut ainsi pas fixer le prix de référence.
+-- Le prix de référence est le prix unitaire le plus bas observé.
 local function GetMarketPrice(values)
     table.sort(values)
     local count = #values
     if count == 0 then return nil end
-    if count == 1 then return values[1], 1, 1 end
-
-    local groups = {}
-    local startIndex, firstPrice
-
-    for i = 1, count do
-        local price = values[i]
-        if not firstPrice or price > firstPrice * 1.20 then
-            if firstPrice then
-                groups[#groups + 1] = { first = startIndex, last = i - 1, count = i - startIndex }
-            end
-            startIndex, firstPrice = i, price
-        end
-    end
-    groups[#groups + 1] = { first = startIndex, last = count, count = count - startIndex + 1 }
-
-    local best = nil
-    for _, group in ipairs(groups) do
-        if not best or group.count > best.count then best = group end
-    end
-
-    -- Si aucun groupe ne domine réellement, la médiane globale est plus prudente.
-    if not best or best.count < math.max(2, math.ceil(count * 0.15)) then
-        return values[math.floor((count + 1) / 2)], 0, count
-    end
-
-    local middle = math.floor((best.first + best.last) / 2)
-    if best.count % 2 == 1 then
-        return values[middle], best.count, count
-    end
-    return math.floor((values[middle] + values[middle + 1]) / 2), best.count, count
+    return values[1], 1, count
 end
 
 function FLM:FinalizeAuctionPrices()
