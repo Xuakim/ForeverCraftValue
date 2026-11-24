@@ -141,38 +141,18 @@ local function CaptureCommoditySearch(itemID)
     if #prices > 0 then FLM:UpdatePriceFromListings(itemID, prices) end
 end
 
--- Les résultats de navigation (catégories, filtres et liste générale)
--- ne déclenchent pas forcément une recherche détaillée par objet.
-local function CaptureBrowseResults(results)
-    if type(results) ~= "table" then return end
-    for _, result in ipairs(results) do
-        local itemKey = result and result.itemKey
-        local itemID = itemKey and tonumber(itemKey.itemID)
-        local minPrice = result and tonumber(result.minPrice)
-        if itemID and minPrice and minPrice > 0 then
-            -- Le résumé HDV fournit le prix minimum observé pour cet objet.
-            FLM:UpdatePriceFromListings(itemID, { minPrice })
-        end
-    end
-end
-
+-- On ne met à jour le prix de référence qu'avec les résultats détaillés
+-- d'une recherche par objet ou par matière première. Les résumés de navigation
+-- ne fournissent souvent que le prix minimum et peuvent être une annonce isolée.
 local searchFrame = CreateFrame("Frame")
 searchFrame:RegisterEvent("ITEM_SEARCH_RESULTS_UPDATED")
 searchFrame:RegisterEvent("ITEM_SEARCH_RESULTS_ADDED")
 searchFrame:RegisterEvent("COMMODITY_SEARCH_RESULTS_UPDATED")
 searchFrame:RegisterEvent("COMMODITY_SEARCH_RESULTS_ADDED")
-searchFrame:RegisterEvent("AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
-searchFrame:RegisterEvent("AUCTION_HOUSE_BROWSE_RESULTS_ADDED")
 searchFrame:SetScript("OnEvent", function(_, event, payload)
     if event == "ITEM_SEARCH_RESULTS_UPDATED" or event == "ITEM_SEARCH_RESULTS_ADDED" then
         CaptureItemSearch(payload)
     elseif event == "COMMODITY_SEARCH_RESULTS_UPDATED" or event == "COMMODITY_SEARCH_RESULTS_ADDED" then
         CaptureCommoditySearch(payload)
-    elseif event == "AUCTION_HOUSE_BROWSE_RESULTS_ADDED" then
-        CaptureBrowseResults(payload)
-    elseif event == "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED" then
-        if C_AuctionHouse and C_AuctionHouse.GetBrowseResults then
-            CaptureBrowseResults(C_AuctionHouse.GetBrowseResults())
-        end
     end
 end)
