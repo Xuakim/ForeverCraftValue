@@ -2,6 +2,7 @@ local ADDON, FLM = ...
 
 local window
 local rows = {}
+local professionTabs = {}
 local sortDescending = true
 local ROW_HEIGHT = 32
 
@@ -135,26 +136,10 @@ function FLM:ShowWindow()
         end)
         window.professionButton:SetPoint("TOPLEFT", 16, -58)
 
-        window.professionSelectButton = MakeButton(window, "Métier : —", 150, function()
-            local names = FLM:GetAvailableProfessions()
-            if #names == 0 then
-                FLM:Print("Importe d'abord les recettes d'un métier.")
-                return
-            end
-            local current = FLM.DB.activeProfession
-            local index = 0
-            for i, name in ipairs(names) do
-                if name == current then index = i break end
-            end
-            local nextIndex = (index % #names) + 1
-            FLM:SetActiveProfession(names[nextIndex])
-        end)
-        window.professionSelectButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
-
         window.scanButton = MakeButton(window, "Scan ciblé", 105, function()
             FLM:StartAuctionScan("targeted")
         end)
-        window.scanButton:SetPoint("LEFT", window.professionSelectButton, "RIGHT", 8, 0)
+        window.scanButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
         window.fullScanButton = MakeButton(window, "Scan complet", 100, function()
             FLM:StartAuctionScan("full")
         end)
@@ -181,7 +166,7 @@ function FLM:ShowWindow()
         end
 
         window.searchLabel = MakeFont(window, 11, "Rechercher :")
-        window.searchLabel:SetPoint("TOPLEFT", 16, -91)
+        window.searchLabel:SetPoint("TOPLEFT", 16, -120)
         window.searchBox = CreateFrame("EditBox", "FCVRecipeSearchBox", window, "InputBoxTemplate")
         window.searchBox:SetSize(230, 24)
         window.searchBox:SetPoint("LEFT", window.searchLabel, "RIGHT", 8, 0)
@@ -202,8 +187,8 @@ function FLM:ShowWindow()
         window.status:SetJustifyH("LEFT")
 
         local header = CreateFrame("Frame", nil, window)
-        header:SetPoint("TOPLEFT", 14, -121)
-        header:SetPoint("TOPRIGHT", -14, -121)
+        header:SetPoint("TOPLEFT", 14, -150)
+        header:SetPoint("TOPRIGHT", -14, -150)
         header:SetHeight(20)
         local hName = MakeColumn(header, "RECETTE", 270, "LEFT")
         hName:SetPoint("LEFT", 7, 0)
@@ -231,11 +216,11 @@ function FLM:ShowWindow()
         local separator = window:CreateTexture(nil, "ARTWORK")
         separator:SetColorTexture(0.8, 0.65, 0.25, 0.65)
         separator:SetHeight(1)
-        separator:SetPoint("TOPLEFT", 16, -141)
-        separator:SetPoint("TOPRIGHT", -16, -141)
+        separator:SetPoint("TOPLEFT", 16, -170)
+        separator:SetPoint("TOPRIGHT", -16, -170)
 
         window.scroll = CreateFrame("ScrollFrame", "FLMResultsScrollFrame", window, "UIPanelScrollFrameTemplate")
-        window.scroll:SetPoint("TOPLEFT", 16, -146)
+        window.scroll:SetPoint("TOPLEFT", 16, -175)
         window.scroll:SetPoint("BOTTOMRIGHT", -30, 42)
         window.scroll:SetClipsChildren(true)
         window.scrollChild = CreateFrame("Frame", nil, window.scroll)
@@ -255,6 +240,27 @@ end
 
 function FLM:RefreshWindow()
     if not window or not self.DB then return end
+    local names = self:GetAvailableProfessions()
+    local totalWidth = 860
+    local tabWidth = #names > 0 and math.min(130, math.max(58, math.floor(totalWidth / #names))) or 90
+    for i, name in ipairs(names) do
+        if not professionTabs[i] then
+            professionTabs[i] = MakeButton(window, name, tabWidth, function()
+                local selectedName = professionTabs[i].professionName
+                if selectedName then FLM:SetActiveProfession(selectedName) end
+            end)
+        end
+        local tab = professionTabs[i]
+        tab.professionName = name
+        tab:SetText(name)
+        tab:SetWidth(tabWidth)
+        tab:ClearAllPoints()
+        tab:SetPoint("TOPLEFT", window, "TOPLEFT", 16 + (i - 1) * (tabWidth + 3), -88)
+        tab:SetEnabled(name ~= self.DB.activeProfession)
+        tab:Show()
+    end
+    for i = #names + 1, #professionTabs do professionTabs[i]:Hide() end
+
     local results = self:CalculateDeals() or {}
     local query = ""
     if window.searchBox then
@@ -323,9 +329,6 @@ function FLM:RefreshWindow()
 
     local recipeCount = #(self.DB.recipes or {})
     local priceCount = CountEntries(self.DB.prices)
-    if window.professionSelectButton then
-        window.professionSelectButton:SetText("Métier : " .. (self.DB.activeProfession or "—"))
-    end
     local scanText = self.DB.lastScan and self.DB.lastScan > 0
         and (date("%d/%m %H:%M", self.DB.lastScan) .. " (" ..
             (self.DB.lastScanMode == "full" and "complet" or "ciblé") .. ")") or "jamais"
