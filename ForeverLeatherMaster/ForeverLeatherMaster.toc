@@ -1,8 +1,8 @@
 ## Interface: 16001
-## Title: Forever Leather Master
-## Notes: Analyse les prix HDV et optimise les recettes du Travail du cuir
+## Title: Forever Leather Master - Multi-Profession
+## Notes: Analyse les prix HDV et optimise les recettes de tous les métiers de fabrication
 ## Author: Forever Leather Master
-## Version: 0.3.4
+## Version: 0.4.0
 ## IconTexture: Interface\\Icons\\INV_Misc_ArmorKit_17
 ## SavedVariables: ForeverLeatherMasterDB
 
