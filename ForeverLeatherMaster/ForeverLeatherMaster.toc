@@ -1,0 +1,15 @@
+## Interface: 16001
+## Title: Forever Leather Master
+## Notes: Analyse les prix HDV et optimise les recettes du Travail du cuir
+## Author: Forever Leather Master
+## Version: 0.2.3
+## IconTexture: Interface\\Icons\\INV_Misc_ArmorKit_17
+## SavedVariables: ForeverLeatherMasterDB
+
+Core.lua
+Database.lua
+Profession.lua
+Scanner.lua
+Optimizer.lua
+Minimap.lua
+Interface.lua
