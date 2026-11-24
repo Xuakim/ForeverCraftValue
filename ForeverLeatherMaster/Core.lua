@@ -1,6 +1,6 @@
 local ADDON, FLM = ...
 
-FLM.VERSION = "0.2.7"
+FLM.VERSION = "0.2.8"
 FLM.DB = nil
 
 local defaults = {
@@ -44,14 +44,19 @@ function FLM:FormatMoneyIcons(copper)
     local bronze = copper % 100
     local parts = {}
 
+    -- Texture atlas officielle de WoW, avec les trois zones de pièces.
+    local goldIcon = "|TInterface\\MoneyFrame\\UI-MoneyIcons:12:12:0:0:0:0:0.25:1|t"
+    local silverIcon = "|TInterface\\MoneyFrame\\UI-MoneyIcons:12:12:0:0:0.25:0.5:0:1|t"
+    local copperIcon = "|TInterface\\MoneyFrame\\UI-MoneyIcons:12:12:0:0:0.5:0.75:0:1|t"
+
     if gold > 0 then
-        parts[#parts + 1] = string.format("%d|TInterface\\MoneyFrame\\UI-GoldIcon:12:12:0:0|t", gold)
+        parts[#parts + 1] = gold .. goldIcon
     end
     if silver > 0 then
-        parts[#parts + 1] = string.format("%d|TInterface\\MoneyFrame\\UI-SilverIcon:12:12:0:0|t", silver)
+        parts[#parts + 1] = silver .. silverIcon
     end
     if bronze > 0 or #parts == 0 then
-        parts[#parts + 1] = string.format("%d|TInterface\\MoneyFrame\\UI-CopperIcon:12:12:0:0|t", bronze)
+        parts[#parts + 1] = bronze .. copperIcon
     end
 
     return table.concat(parts, " ")
