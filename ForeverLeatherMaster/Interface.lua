@@ -202,9 +202,9 @@ function FLM:RefreshWindow()
         local deal = results[i]
         row.recipeID = deal.recipeID
         row.name:SetText(deal.name or ("Recette " .. tostring(deal.recipeID or "?")))
-        row.cost:SetText(self:FormatGold(deal.materialCost))
-        row.sale:SetText(self:FormatGold(deal.netSale))
-        row.profit:SetText((deal.profit >= 0 and "+" or "") .. self:FormatGold(deal.profit))
+        row.cost:SetText(self:FormatMoneyIcons(deal.materialCost))
+        row.sale:SetText(self:FormatMoneyIcons(deal.netSale))
+        row.profit:SetText((deal.profit >= 0 and "+" or "-") .. self:FormatMoneyIcons(math.abs(deal.profit)))
         row.margin:SetText(string.format("%.1f%%", deal.margin or 0))
         if deal.profit >= 0 then
             row.profit:SetTextColor(0.25, 1, 0.35)
