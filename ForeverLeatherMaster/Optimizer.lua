@@ -76,7 +76,23 @@ function FLM:CalculateDeals()
         if complete and salePrice and outputID then
             local outputCount = math.max(1, tonumber(recipe.outputCount) or 1)
             local grossSale = salePrice * outputCount
-            local netSale = grossSale * (1 - (tonumber(self.DB.ahCut) or 0.05))
+            local commissionRate = tonumber(self.DB.ahCut) or 0.05
+            local commission = math.floor(grossSale * commissionRate)
+            local netSale = grossSale - commission
+
+            local duration = tonumber(self.DB.ahDuration) or 8
+            local depositRate = duration == 2 and 0.05 or (duration == 24 and 0.60 or 0.20)
+            local vendorPrice
+            if GetItemInfo then
+                local _, _, _, _, _, _, _, _, _, _, sellPrice = GetItemInfo(outputID)
+                vendorPrice = tonumber(sellPrice)
+            end
+            local depositCost
+            if vendorPrice then
+                depositCost = math.max(1, math.floor(vendorPrice * depositRate * outputCount))
+            end
+
+            -- Le dépôt est rendu en cas de vente : il n'est pas soustrait du bénéfice.
             local profit = netSale - totalCost
 
             table.insert(results, {
@@ -87,6 +103,9 @@ function FLM:CalculateDeals()
                 materialCost = totalCost,
                 grossSale = grossSale,
                 netSale = netSale,
+                commission = commission,
+                depositCost = depositCost,
+                auctionDuration = duration,
                 profit = profit,
                 margin = totalCost > 0 and (profit / totalCost) * 100 or 0,
                 learned = recipe.learned,
