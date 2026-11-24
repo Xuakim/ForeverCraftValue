@@ -109,3 +109,47 @@ function FLM:StartAuctionScan()
     self:Print("Demande de scan complet envoyée. Le serveur peut imposer un délai de 15 minutes.")
     return true
 end
+
+-- Capture les résultats des recherches normales de l'hôtel des ventes.
+-- Ces événements se déclenchent aussi lorsque le joueur consulte un objet.
+local function CaptureItemSearch(itemKey)
+    if not itemKey or not itemKey.itemID or not C_AuctionHouse then return end
+    local itemID = tonumber(itemKey.itemID)
+    local count = C_AuctionHouse.GetNumItemSearchResults(itemKey) or 0
+    local prices = {}
+    for i = 1, count do
+        local info = C_AuctionHouse.GetItemSearchResultInfo(itemKey, i)
+        if info and info.buyoutAmount and info.buyoutAmount > 0 then
+            local quantity = math.max(1, tonumber(info.quantity) or 1)
+            prices[#prices + 1] = math.floor(info.buyoutAmount / quantity)
+        end
+    end
+    if #prices > 0 then FLM:UpdatePriceFromListings(itemID, prices) end
+end
+
+local function CaptureCommoditySearch(itemID)
+    itemID = tonumber(itemID)
+    if not itemID or not C_AuctionHouse then return end
+    local count = C_AuctionHouse.GetNumCommoditySearchResults(itemID) or 0
+    local prices = {}
+    for i = 1, count do
+        local info = C_AuctionHouse.GetCommoditySearchResultInfo(itemID, i)
+        if info and info.unitPrice and info.unitPrice > 0 then
+            prices[#prices + 1] = info.unitPrice
+        end
+    end
+    if #prices > 0 then FLM:UpdatePriceFromListings(itemID, prices) end
+end
+
+local searchFrame = CreateFrame("Frame")
+searchFrame:RegisterEvent("ITEM_SEARCH_RESULTS_UPDATED")
+searchFrame:RegisterEvent("ITEM_SEARCH_RESULTS_ADDED")
+searchFrame:RegisterEvent("COMMODITY_SEARCH_RESULTS_UPDATED")
+searchFrame:RegisterEvent("COMMODITY_SEARCH_RESULTS_ADDED")
+searchFrame:SetScript("OnEvent", function(_, event, payload)
+    if event == "ITEM_SEARCH_RESULTS_UPDATED" or event == "ITEM_SEARCH_RESULTS_ADDED" then
+        CaptureItemSearch(payload)
+    elseif event == "COMMODITY_SEARCH_RESULTS_UPDATED" or event == "COMMODITY_SEARCH_RESULTS_ADDED" then
+        CaptureCommoditySearch(payload)
+    end
+end)
