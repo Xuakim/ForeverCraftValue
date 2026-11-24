@@ -1,6 +1,6 @@
 local ADDON, FLM = ...
 
-FLM.VERSION = "0.2.6"
+FLM.VERSION = "0.2.7"
 FLM.DB = nil
 
 local defaults = {
@@ -34,6 +34,27 @@ function FLM:FormatGold(copper)
     local silver = math.floor((copper % 10000) / 100)
     local bronze = copper % 100
     return string.format("%dg %02ds %02dc", gold, silver, bronze)
+end
+
+-- Affichage compact avec les icônes officielles or / argent / cuivre.
+function FLM:FormatMoneyIcons(copper)
+    copper = math.floor(tonumber(copper) or 0)
+    local gold = math.floor(copper / 10000)
+    local silver = math.floor((copper % 10000) / 100)
+    local bronze = copper % 100
+    local parts = {}
+
+    if gold > 0 then
+        parts[#parts + 1] = string.format("%d|TInterface\\MoneyFrame\\UI-GoldIcon:12:12:0:0|t", gold)
+    end
+    if silver > 0 then
+        parts[#parts + 1] = string.format("%d|TInterface\\MoneyFrame\\UI-SilverIcon:12:12:0:0|t", silver)
+    end
+    if bronze > 0 or #parts == 0 then
+        parts[#parts + 1] = string.format("%d|TInterface\\MoneyFrame\\UI-CopperIcon:12:12:0:0|t", bronze)
+    end
+
+    return table.concat(parts, " ")
 end
 
 function FLM:SetPrice(itemID, copper)
