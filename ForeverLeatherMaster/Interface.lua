@@ -116,6 +116,8 @@ function FLM:ShowWindow()
     if not window then
         window = CreateFrame("Frame", "ForeverLeatherMasterFrame", UIParent, "BasicFrameTemplateWithInset")
         window:SetSize(900, 500)
+        window:SetFrameStrata("DIALOG")
+        window:SetToplevel(true)
         window:SetPoint("CENTER")
         window:SetMovable(true)
         window:EnableMouse(true)
@@ -210,6 +212,7 @@ function FLM:ShowWindow()
         window.empty:SetJustifyH("CENTER")
     end
     window:Show()
+    window:Raise()
     self:RefreshWindow()
 end
 
