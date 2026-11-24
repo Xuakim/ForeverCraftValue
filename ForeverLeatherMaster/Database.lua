@@ -62,14 +62,17 @@ local function GetMarketPrice(values)
 end
 
 function FLM:FinalizeAuctionPrices()
-    local prices = {}
+    -- Un scan partiel ne doit jamais effacer les prix déjà connus.
+    local prices = self.DB.prices or {}
+    self.DB.priceUpdated = self.DB.priceUpdated or {}
     local observations = self.scanObservations or {}
-    local itemCount, offerCount = 0, 0
+    local itemCount, offerCount, updatedAt = 0, 0, time()
 
     for itemID, offers in pairs(observations) do
         local reference = GetMarketPrice(offers)
         if reference and reference > 0 then
             prices[itemID] = reference
+            self.DB.priceUpdated[itemID] = updatedAt
             itemCount = itemCount + 1
             offerCount = offerCount + #offers
         end
@@ -77,4 +80,29 @@ function FLM:FinalizeAuctionPrices()
 
     self.scanObservations = nil
     return prices, itemCount, offerCount
+end
+
+-- Met à jour le prix d'un objet à partir des annonces réellement consultées.
+function FLM:UpdatePriceFromListings(itemID, unitPrices)
+    itemID = tonumber(itemID)
+    if not itemID or itemID <= 0 or type(unitPrices) ~= "table" or #unitPrices == 0 then
+        return false
+    end
+
+    local valid = {}
+    for _, price in ipairs(unitPrices) do
+        price = tonumber(price)
+        if price and price > 0 then valid[#valid + 1] = math.floor(price) end
+    end
+    if #valid == 0 then return false end
+
+    local reference = GetMarketPrice(valid)
+    if not reference or reference <= 0 then return false end
+
+    self.DB.prices = self.DB.prices or {}
+    self.DB.priceUpdated = self.DB.priceUpdated or {}
+    self.DB.prices[itemID] = reference
+    self.DB.priceUpdated[itemID] = time()
+    self:Refresh()
+    return true
 end
