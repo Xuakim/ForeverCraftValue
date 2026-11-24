@@ -3,7 +3,7 @@ local ADDON, FLM = ...
 local window
 local rows = {}
 local sortDescending = true
-local ROW_HEIGHT = 24
+local ROW_HEIGHT = 32
 
 local function MakeFont(parent, size, text, template)
     local fs = parent:CreateFontString(nil, "OVERLAY", template or "GameFontNormal")
@@ -60,8 +60,13 @@ local function CreateResultRow(parent, index)
     row.nameButton:SetPoint("LEFT", 7, 0)
     row.nameButton:SetSize(270, ROW_HEIGHT)
     row.name = MakeFont(row.nameButton, 11, "", "GameFontHighlight")
-    row.name:SetPoint("LEFT", 0, 0)
+    row.name:SetPoint("TOPLEFT", 0, -2)
     row.name:SetWidth(265)
+    row.age = MakeFont(row.nameButton, 9, "", "GameFontDisableSmall")
+    row.age:SetPoint("BOTTOMLEFT", 0, 1)
+    row.age:SetWidth(265)
+    row.age:SetJustifyH("LEFT")
+    row.age:SetWordWrap(false)
     row.name:SetJustifyH("LEFT")
     row.name:SetWordWrap(false)
     row.nameButton:SetScript("OnClick", function()
@@ -222,6 +227,7 @@ function FLM:RefreshWindow()
         local deal = results[i]
         row.recipeID = deal.recipeID
         row.name:SetText(deal.name or ("Recette " .. tostring(deal.recipeID or "?")))
+        row.age:SetText("Prix de vente : " .. self:FormatPriceAge(deal.salePriceUpdated))
         row.cost:SetText(self:FormatMoneyIcons(deal.materialCost))
         row.sale:SetText(self:FormatMoneyIcons(deal.netSale))
         row.deposit:SetText(deal.depositCost and self:FormatMoneyIcons(deal.depositCost) or "—")
@@ -260,7 +266,7 @@ function FLM:RefreshWindow()
         button:SetEnabled(hours ~= duration)
     end
     window.status:SetText(string.format(
-        "%d recettes apprises | %d objets avec prix | %d recettes calculables | Scan : %s | Commission : %.0f%% | Durée : %dh",
+        "%d recettes apprises | %d objets avec prix | %d recettes calculables | Scan complet : %s | Prix consultés : actualisés automatiquement | Commission : %.0f%% | Durée : %dh",
         recipeCount, priceCount, #results, scanText,
         (tonumber(self.DB.ahCut) or 0.05) * 100, duration
     ))
