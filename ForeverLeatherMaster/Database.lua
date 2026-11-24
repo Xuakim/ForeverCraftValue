@@ -24,41 +24,44 @@ function FLM:RecordAuctionPrice(itemID, totalBuyout, stackCount)
     return true
 end
 
--- Regroupe les prix proches (écart maximal de 20 % depuis le début du groupe).
--- Un groupe doit représenter au moins 15 % des annonces et au moins 2 offres
--- pour être considéré comme un niveau de prix réellement présent sur le marché.
+-- Regroupe les annonces dont les prix sont proches (écart maximal de 20 %).
+-- Retient le groupe le plus représenté, puis sa médiane : une annonce isolée
+-- très basse ne peut ainsi pas fixer le prix de référence.
 local function GetMarketPrice(values)
     table.sort(values)
     local count = #values
     if count == 0 then return nil end
-    if count == 1 then return values[1] end
+    if count == 1 then return values[1], 1, 1 end
 
     local groups = {}
-    local firstPrice, groupCount
+    local startIndex, firstPrice
 
     for i = 1, count do
         local price = values[i]
         if not firstPrice or price > firstPrice * 1.20 then
             if firstPrice then
-                groups[#groups + 1] = { price = firstPrice, count = groupCount }
+                groups[#groups + 1] = { first = startIndex, last = i - 1, count = i - startIndex }
             end
-            firstPrice, groupCount = price, 1
-        else
-            groupCount = groupCount + 1
+            startIndex, firstPrice = i, price
         end
     end
-    groups[#groups + 1] = { price = firstPrice, count = groupCount }
+    groups[#groups + 1] = { first = startIndex, last = count, count = count - startIndex + 1 }
 
-    local minimumSupport = math.max(2, math.ceil(count * 0.15))
-    for i = 1, #groups do
-        if groups[i].count >= minimumSupport then
-            return groups[i].price, groups[i].count, count
-        end
+    local best = nil
+    for _, group in ipairs(groups) do
+        if not best or group.count > best.count then best = group end
     end
 
-    -- Échantillon trop dispersé : la médiane haute évite qu'une annonce isolée
-    -- au prix plancher fasse artificiellement chuter l'estimation.
-    return values[math.floor(count / 2) + 1], 0, count
+    -- Si aucun groupe ne domine réellement, la médiane globale est plus prudente.
+    if not best or best.count < math.max(2, math.ceil(count * 0.15)) then
+        return values[math.floor((count + 1) / 2)], 0, count
+    end
+
+    local middle = math.floor((best.first + best.last) / 2)
+    if best.count % 2 == 1 then
+        return values[middle], best.count, count
+    end
+    return math.floor((values[middle] + values[middle + 1]) / 2), best.count, count
 end
 
 function FLM:FinalizeAuctionPrices()
@@ -85,7 +88,7 @@ end
 -- Met à jour le prix d'un objet à partir des annonces réellement consultées.
 function FLM:UpdatePriceFromListings(itemID, unitPrices)
     itemID = tonumber(itemID)
-    if not itemID or itemID <= 0 or type(unitPrices) ~= "table" or #unitPrices == 0 then
+    if not itemID or itemID <= 0 or type(unitPrices) ~= "table" or #unitPrices < 2 then
         return false
     end
 
@@ -94,7 +97,7 @@ function FLM:UpdatePriceFromListings(itemID, unitPrices)
         price = tonumber(price)
         if price and price > 0 then valid[#valid + 1] = math.floor(price) end
     end
-    if #valid == 0 then return false end
+    if #valid < 2 then return false end
 
     local reference = GetMarketPrice(valid)
     if not reference or reference <= 0 then return false end
