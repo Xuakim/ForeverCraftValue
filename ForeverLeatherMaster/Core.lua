@@ -1,10 +1,11 @@
 local ADDON, FLM = ...
 
-FLM.VERSION = "0.2.8"
+FLM.VERSION = "0.2.9"
 FLM.DB = nil
 
 local defaults = {
-    ahCut = 0.05,
+    ahCut = 0.05, -- Commission faction WoW Forever
+    ahDuration = 8, -- Durée de mise en vente en heures
     prices = {},       -- [itemID] = lowest observed unit buyout (copper)
     recipes = {},      -- imported from the open profession window
     lastScan = 0,
@@ -44,22 +45,23 @@ function FLM:FormatMoneyIcons(copper)
     local bronze = copper % 100
     local parts = {}
 
-    -- Texture atlas officielle de WoW, avec les trois zones de pièces.
-    local goldIcon = "|TInterface\\MoneyFrame\\UI-MoneyIcons:12:12:0:0:0:0:0.25:1|t"
-    local silverIcon = "|TInterface\\MoneyFrame\\UI-MoneyIcons:12:12:0:0:0.25:0.5:0:1|t"
-    local copperIcon = "|TInterface\\MoneyFrame\\UI-MoneyIcons:12:12:0:0:0.5:0.75:0:1|t"
+    local goldIcon = "|TInterface\\MoneyFrame\\UI-GoldIcon:14:14:0:0|t"
+    local silverIcon = "|TInterface\\MoneyFrame\\UI-SilverIcon:14:14:0:0|t"
+    local copperIcon = "|TInterface\\MoneyFrame\\UI-CopperIcon:14:14:0:0|t"
 
-    if gold > 0 then
-        parts[#parts + 1] = gold .. goldIcon
-    end
-    if silver > 0 then
-        parts[#parts + 1] = silver .. silverIcon
-    end
-    if bronze > 0 or #parts == 0 then
-        parts[#parts + 1] = bronze .. copperIcon
-    end
+    if gold > 0 then parts[#parts + 1] = gold .. goldIcon end
+    if silver > 0 then parts[#parts + 1] = silver .. silverIcon end
+    if bronze > 0 or #parts == 0 then parts[#parts + 1] = bronze .. copperIcon end
 
     return table.concat(parts, " ")
+end
+
+function FLM:SetAuctionDuration(hours)
+    hours = tonumber(hours)
+    if hours ~= 2 and hours ~= 8 and hours ~= 24 then return false end
+    self.DB.ahDuration = hours
+    self:Refresh()
+    return true
 end
 
 function FLM:SetPrice(itemID, copper)
