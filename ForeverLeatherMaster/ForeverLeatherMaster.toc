@@ -2,7 +2,7 @@
 ## Title: Forever Leather Master
 ## Notes: Analyse les prix HDV et optimise les recettes du Travail du cuir
 ## Author: Forever Leather Master
-## Version: 0.3.1
+## Version: 0.3.2
 ## IconTexture: Interface\\Icons\\INV_Misc_ArmorKit_17
 ## SavedVariables: ForeverLeatherMasterDB
 
