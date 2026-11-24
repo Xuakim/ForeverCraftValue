@@ -39,7 +39,7 @@ local function OpenRecipe(recipeID)
             return
         end
     end
-    FLM:Print("Sélection directe indisponible sur ce client. Ouvre Travail du cuir et réessaie.")
+    FLM:Print("Sélection directe indisponible sur ce client. Ouvre le métier concerné et réessaie.")
 end
 
 local function CreateResultRow(parent, index)
@@ -125,19 +125,36 @@ function FLM:ShowWindow()
         window:SetScript("OnDragStart", window.StartMoving)
         window:SetScript("OnDragStop", window.StopMovingOrSizing)
 
-        window.title = MakeFont(window, 14, "Forever Leather Master - Optimiseur du Travail du cuir")
+        window.title = MakeFont(window, 14, "Forever Leather Master - Optimiseur de métiers")
         window.title:SetPoint("TOP", 0, -8)
-        window.help = MakeFont(window, 11, "Importe tes recettes apprises, puis scanne l'HDV. Clique sur une recette pour l'ouvrir.")
+        window.help = MakeFont(window, 11, "Ouvre un métier, importe ses recettes, puis scanne l'HDV. Clique sur une recette pour l'ouvrir.")
         window.help:SetPoint("TOPLEFT", 16, -38)
 
         window.professionButton = MakeButton(window, "Importer recettes", 135, function()
-            FLM:ImportLeatherworkingRecipes()
+            FLM:ImportProfessionRecipes()
         end)
         window.professionButton:SetPoint("TOPLEFT", 16, -58)
+
+        window.professionSelectButton = MakeButton(window, "Métier : —", 150, function()
+            local names = FLM:GetAvailableProfessions()
+            if #names == 0 then
+                FLM:Print("Importe d'abord les recettes d'un métier.")
+                return
+            end
+            local current = FLM.DB.activeProfession
+            local index = 0
+            for i, name in ipairs(names) do
+                if name == current then index = i break end
+            end
+            local nextIndex = (index % #names) + 1
+            FLM:SetActiveProfession(names[nextIndex])
+        end)
+        window.professionSelectButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
+
         window.scanButton = MakeButton(window, "Scanner l'HDV", 115, function()
             FLM:StartAuctionScan()
         end)
-        window.scanButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
+        window.scanButton:SetPoint("LEFT", window.professionSelectButton, "RIGHT", 8, 0)
         window.refreshButton = MakeButton(window, "Actualiser", 100, function()
             FLM:RefreshWindow()
         end)
@@ -262,6 +279,9 @@ function FLM:RefreshWindow()
 
     local recipeCount = #(self.DB.recipes or {})
     local priceCount = CountEntries(self.DB.prices)
+    if window.professionSelectButton then
+        window.professionSelectButton:SetText("Métier : " .. (self.DB.activeProfession or "—"))
+    end
     local scanText = self.DB.lastScan and self.DB.lastScan > 0
         and date("%d/%m %H:%M", self.DB.lastScan) or "jamais"
     local duration = tonumber(self.DB.ahDuration) or 8
@@ -269,8 +289,8 @@ function FLM:RefreshWindow()
         button:SetEnabled(hours ~= duration)
     end
     window.status:SetText(string.format(
-        "%d recettes apprises | %d objets avec prix | %d recettes calculables | Scan complet : %s | Prix consultés : actualisés automatiquement | Commission : %.0f%% | Durée : %dh",
-        recipeCount, priceCount, #results, scanText,
+        "%s | %d recettes apprises | %d objets avec prix | %d recettes calculables | Scan complet : %s | Prix consultés : actualisés automatiquement | Commission : %.0f%% | Durée : %dh",
+        self.DB.activeProfession or "Aucun métier sélectionné", recipeCount, priceCount, #results, scanText,
         (tonumber(self.DB.ahCut) or 0.05) * 100, duration
     ))
 end
