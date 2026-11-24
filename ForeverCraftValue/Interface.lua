@@ -180,14 +180,30 @@ function FLM:ShowWindow()
             window.durationButtons[hours] = button
         end
 
+        window.searchLabel = MakeFont(window, 11, "Rechercher :")
+        window.searchLabel:SetPoint("TOPLEFT", 16, -91)
+        window.searchBox = CreateFrame("EditBox", "FCVRecipeSearchBox", window, "InputBoxTemplate")
+        window.searchBox:SetSize(230, 24)
+        window.searchBox:SetPoint("LEFT", window.searchLabel, "RIGHT", 8, 0)
+        window.searchBox:SetAutoFocus(false)
+        window.searchBox:SetMaxLetters(80)
+        window.searchBox:SetScript("OnTextChanged", function()
+            FLM:RefreshWindow()
+        end)
+        window.clearSearchButton = MakeButton(window, "Effacer", 65, function()
+            window.searchBox:SetText("")
+            window.searchBox:ClearFocus()
+        end)
+        window.clearSearchButton:SetPoint("LEFT", window.searchBox, "RIGHT", 6, 0)
+
         window.status = MakeFont(window, 10, "")
         window.status:SetPoint("BOTTOMLEFT", 16, 13)
         window.status:SetWidth(850)
         window.status:SetJustifyH("LEFT")
 
         local header = CreateFrame("Frame", nil, window)
-        header:SetPoint("TOPLEFT", 14, -94)
-        header:SetPoint("TOPRIGHT", -14, -94)
+        header:SetPoint("TOPLEFT", 14, -121)
+        header:SetPoint("TOPRIGHT", -14, -121)
         header:SetHeight(20)
         local hName = MakeColumn(header, "RECETTE", 270, "LEFT")
         hName:SetPoint("LEFT", 7, 0)
@@ -215,11 +231,11 @@ function FLM:ShowWindow()
         local separator = window:CreateTexture(nil, "ARTWORK")
         separator:SetColorTexture(0.8, 0.65, 0.25, 0.65)
         separator:SetHeight(1)
-        separator:SetPoint("TOPLEFT", 16, -114)
-        separator:SetPoint("TOPRIGHT", -16, -114)
+        separator:SetPoint("TOPLEFT", 16, -141)
+        separator:SetPoint("TOPRIGHT", -16, -141)
 
         window.scroll = CreateFrame("ScrollFrame", "FLMResultsScrollFrame", window, "UIPanelScrollFrameTemplate")
-        window.scroll:SetPoint("TOPLEFT", 16, -119)
+        window.scroll:SetPoint("TOPLEFT", 16, -146)
         window.scroll:SetPoint("BOTTOMRIGHT", -30, 42)
         window.scroll:SetClipsChildren(true)
         window.scrollChild = CreateFrame("Frame", nil, window.scroll)
@@ -240,6 +256,25 @@ end
 function FLM:RefreshWindow()
     if not window or not self.DB then return end
     local results = self:CalculateDeals() or {}
+    local query = ""
+    if window.searchBox then
+        query = string.lower(window.searchBox:GetText() or "")
+        query = query:gsub("^%s+", ""):gsub("%s+$", "")
+    end
+    if query ~= "" then
+        local filtered = {}
+        for _, deal in ipairs(results) do
+            local recipeName = string.lower(tostring(deal.name or ""))
+            local itemName = ""
+            if deal.outputItemID and GetItemInfo then
+                itemName = string.lower(tostring(GetItemInfo(deal.outputItemID) or ""))
+            end
+            if string.find(recipeName, query, 1, true) or string.find(itemName, query, 1, true) then
+                filtered[#filtered + 1] = deal
+            end
+        end
+        results = filtered
+    end
     SortResults(results)
 
     for i = 1, #results do
@@ -280,6 +315,11 @@ function FLM:RefreshWindow()
     window.scrollChild:SetHeight(math.max(1, #results * ROW_HEIGHT))
     window.scroll:SetVerticalScroll(0)
     window.empty:SetShown(#results == 0)
+    if #results == 0 and query ~= "" then
+        window.empty:SetText("Aucune recette ou aucun objet fabriqué ne correspond à « " .. query .. " ».")
+    else
+        window.empty:SetText("Aucun résultat calculable pour le moment. Importe tes recettes et renseigne les prix via le scan HDV.")
+    end
 
     local recipeCount = #(self.DB.recipes or {})
     local priceCount = CountEntries(self.DB.prices)
