@@ -1,12 +1,13 @@
 local ADDON, FLM = ...
 
-FLM.VERSION = "0.2.9"
+FLM.VERSION = "0.3.0"
 FLM.DB = nil
 
 local defaults = {
     ahCut = 0.05, -- Commission faction WoW Forever
     ahDuration = 8, -- Durée de mise en vente en heures
-    prices = {},       -- [itemID] = lowest observed unit buyout (copper)
+    prices = {},       -- [itemID] = observed reference unit buyout (copper)
+    priceUpdated = {}, -- [itemID] = timestamp of latest observation
     recipes = {},      -- imported from the open profession window
     lastScan = 0,
     lastScanCount = 0,
@@ -56,6 +57,17 @@ function FLM:FormatMoneyIcons(copper)
     return table.concat(parts, " ")
 end
 
+
+function FLM:FormatPriceAge(timestamp)
+    timestamp = tonumber(timestamp)
+    if not timestamp or timestamp <= 0 then return "Âge inconnu" end
+    local age = math.max(0, time() - timestamp)
+    if age < 60 then return "À l'instant" end
+    if age < 3600 then return "MAJ il y a " .. math.floor(age / 60) .. " min" end
+    if age < 86400 then return "MAJ il y a " .. math.floor(age / 3600) .. " h" end
+    return "MAJ il y a " .. math.floor(age / 86400) .. " j"
+end
+
 function FLM:SetAuctionDuration(hours)
     hours = tonumber(hours)
     if hours ~= 2 and hours ~= 8 and hours ~= 24 then return false end
@@ -70,6 +82,8 @@ function FLM:SetPrice(itemID, copper)
         return false
     end
     self.DB.prices[itemID] = copper
+    self.DB.priceUpdated = self.DB.priceUpdated or {}
+    self.DB.priceUpdated[itemID] = time()
     return true
 end
 
