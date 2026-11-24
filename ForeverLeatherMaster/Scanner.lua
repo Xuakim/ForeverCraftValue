@@ -4,17 +4,19 @@ local scanning = false
 local processIndex = 0
 local totalAuctions = 0
 local processed = 0
-local oldScanCount = 0
+local validOffers = 0
 local scannerFrame = CreateFrame("Frame")
 
 local function FinishScan()
     scanning = false
-    FLM.DB.prices = FLM.scanPrices or {}
-    FLM.scanPrices = nil
+    local prices, itemCount, offerCount = FLM:FinalizeAuctionPrices()
+    FLM.DB.prices = prices
     FLM.DB.lastScan = time()
     FLM.DB.lastScanCount = processed
-    FLM:Print(string.format("Scan terminé : %d annonces parcourues, %d objets avec prix enregistrés.",
-        processed, oldScanCount))
+    FLM:Print(string.format(
+        "Scan terminé : %d annonces examinées, %d offres valides, %d objets. Prix de référence = médiane des offres.",
+        processed, offerCount or validOffers, itemCount
+    ))
     FLM:Refresh()
 end
 
@@ -23,9 +25,6 @@ local function ProcessBatch()
 
     local limit = math.min(processIndex + 249, totalAuctions - 1)
     while processIndex <= limit do
-        -- Returns: name, texture, count, quality, usable, level, levelType,
-        -- minBid, minIncrement, buyoutPrice, bidAmount, highBidder,
-        -- bidderFullName, owner, ownerFullName, saleStatus, itemID, hasAllInfo
         local name, texture, count, quality, usable, level, levelType,
             minBid, minIncrement, buyoutPrice, bidAmount, highBidder,
             bidderFullName, owner, ownerFullName, saleStatus, itemID =
@@ -33,7 +32,7 @@ local function ProcessBatch()
 
         if itemID and buyoutPrice and buyoutPrice > 0 then
             if FLM:RecordAuctionPrice(itemID, buyoutPrice, count) then
-                oldScanCount = oldScanCount + 1
+                validOffers = validOffers + 1
             end
         end
 
@@ -46,7 +45,7 @@ local function ProcessBatch()
     end
 end
 
-scannerFrame:SetScript("OnUpdate", function(_, elapsed)
+scannerFrame:SetScript("OnUpdate", function()
     if scanning then ProcessBatch() end
 end)
 
@@ -62,8 +61,8 @@ eventFrame:SetScript("OnEvent", function()
     end
 
     totalAuctions = C_AuctionHouse.GetNumReplicateItems() or 0
-    processIndex, processed, oldScanCount = 0, 0, 0
-    FLM.scanPrices = {}
+    processIndex, processed, validOffers = 0, 0, 0
+    FLM.scanObservations = {}
     scanning = true
 
     if totalAuctions == 0 then
