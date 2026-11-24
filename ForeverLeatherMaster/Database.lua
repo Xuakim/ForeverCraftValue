@@ -1,7 +1,6 @@
 local ADDON, FLM = ...
 
--- Collecte toutes les offres d'un objet pendant le scan.
--- Le prix final est calculé à partir de la médiane, pas du minimum isolé.
+-- Collecte les prix unitaires de toutes les annonces d'un objet.
 function FLM:RecordAuctionPrice(itemID, totalBuyout, stackCount)
     itemID = tonumber(itemID)
     totalBuyout = tonumber(totalBuyout)
@@ -25,15 +24,25 @@ function FLM:RecordAuctionPrice(itemID, totalBuyout, stackCount)
     return true
 end
 
-local function MedianPrice(values)
+local function GetReasonableLowPrice(values)
     table.sort(values)
     local count = #values
     if count == 0 then return nil end
+    if count == 1 then return values[1] end
 
-    -- Rang supérieur en cas de nombre pair : évite qu'une offre très basse
-    -- parmi seulement deux annonces tire le prix de référence vers le bas.
-    local index = math.floor(count / 2) + 1
-    return values[index]
+    -- Médiane comme référence robuste, puis on écarte les annonces
+    -- inférieures à 70 % de cette référence. Parmi les autres,
+    -- on retient le prix le plus bas pour rester compétitif.
+    local median = values[math.floor((count + 1) / 2)]
+    local floorThreshold = median * 0.70
+
+    for i = 1, count do
+        if values[i] >= floorThreshold then
+            return values[i]
+        end
+    end
+
+    return median
 end
 
 function FLM:FinalizeAuctionPrices()
@@ -42,7 +51,7 @@ function FLM:FinalizeAuctionPrices()
     local itemCount, offerCount = 0, 0
 
     for itemID, offers in pairs(observations) do
-        local reference = MedianPrice(offers)
+        local reference = GetReasonableLowPrice(offers)
         if reference and reference > 0 then
             prices[itemID] = reference
             itemCount = itemCount + 1
