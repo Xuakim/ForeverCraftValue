@@ -100,6 +100,7 @@ function FLM:CalculateDeals()
                 name = recipe.name or ("Recette " .. tostring(recipe.recipeID)),
                 outputItemID = outputID,
                 outputCount = outputCount,
+                salePriceUpdated = self.DB.priceUpdated and self.DB.priceUpdated[outputID],
                 materialCost = totalCost,
                 grossSale = grossSale,
                 netSale = netSale,
