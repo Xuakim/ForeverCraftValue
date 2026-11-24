@@ -140,8 +140,9 @@ function FLM:ShowWindow()
         window.durationLabel:SetPoint("LEFT", window.refreshButton, "RIGHT", 14, 0)
         window.durationButtons = {}
         for _, hours in ipairs({2, 8, 24}) do
-            local button = MakeButton(window, hours .. " h", 48, function()
-                FLM:SetAuctionDuration(hours)
+            local durationHours = hours
+            local button = MakeButton(window, durationHours .. " h", 48, function()
+                FLM:SetAuctionDuration(durationHours)
             end)
             if hours == 2 then
                 button:SetPoint("LEFT", window.durationLabel, "RIGHT", 6, 0)
