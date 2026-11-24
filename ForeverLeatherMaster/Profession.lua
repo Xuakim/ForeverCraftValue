@@ -5,26 +5,85 @@ local function GetProfessionLabel(info)
     return info.professionName or info.name or info.parentProfessionName or ""
 end
 
-function FLM:ImportLeatherworkingRecipes()
-    if not C_TradeSkillUI or not C_TradeSkillUI.GetAllRecipeIDs then
+function FLM:GetAvailableProfessions()
+    local names = {}
+    for name in pairs((self.DB and self.DB.professions) or {}) do
+        names[#names + 1] = name
+    end
+    table.sort(names)
+    return names
+end
+
+function FLM:SaveActiveProfession()
+    if not self.DB then return end
+    local name = self.DB.activeProfession
+    if not name or name == "" then return end
+    self.DB.professions = self.DB.professions or {}
+    local entry = self.DB.professions[name] or {}
+    entry.recipes = self.DB.recipes or {}
+    entry.lastImport = entry.lastImport or self.DB.recipeImportTime or 0
+    self.DB.professions[name] = entry
+end
+
+function FLM:InitializeProfessionData()
+    if not self.DB then return end
+    self.DB.professions = self.DB.professions or {}
+
+    -- Migration transparente des anciennes données (versions spécialisées cuir).
+    local legacyName = self.DB.recipeProfession
+    if type(self.DB.recipes) == "table" and #self.DB.recipes > 0 then
+        legacyName = (legacyName and legacyName ~= "") and legacyName or "Travail du cuir"
+        if not self.DB.professions[legacyName] then
+            self.DB.professions[legacyName] = {
+                recipes = self.DB.recipes,
+                lastImport = self.DB.recipeImportTime or 0,
+            }
+        end
+    end
+
+    local active = self.DB.activeProfession
+    if not active or not self.DB.professions[active] then
+        if legacyName and self.DB.professions[legacyName] then
+            active = legacyName
+        else
+            local names = self:GetAvailableProfessions()
+            active = names[1]
+        end
+    end
+
+    self.DB.activeProfession = active
+    if active and self.DB.professions[active] then
+        self.DB.recipes = self.DB.professions[active].recipes or {}
+        self.DB.recipeProfession = active
+    else
+        self.DB.recipes = self.DB.recipes or {}
+    end
+end
+
+function FLM:SetActiveProfession(name)
+    if not self.DB or not name or not self.DB.professions or not self.DB.professions[name] then
+        return false
+    end
+    self:SaveActiveProfession()
+    self.DB.activeProfession = name
+    self.DB.recipeProfession = name
+    self.DB.recipes = self.DB.professions[name].recipes or {}
+    self:Print("Métier affiché : " .. name)
+    self:Refresh()
+    return true
+end
+
+function FLM:ImportProfessionRecipes()
+    if not C_TradeSkillUI or not C_TradeSkillUI.GetAllRecipeIDs
+        or not C_TradeSkillUI.GetBaseProfessionInfo then
         self:Print("API des métiers indisponible sur ce client.")
         return 0
     end
 
-    local baseInfo = C_TradeSkillUI.GetBaseProfessionInfo and C_TradeSkillUI.GetBaseProfessionInfo()
+    local baseInfo = C_TradeSkillUI.GetBaseProfessionInfo()
     local professionName = GetProfessionLabel(baseInfo)
-
-    -- Avoid importing the wrong profession if another profession window is open.
-    -- The name check is intentionally permissive for localized client labels.
-    local lowerName = string.lower(professionName)
-    local looksLikeLeatherworking =
-        (Enum and Enum.Profession and baseInfo and baseInfo.profession == Enum.Profession.Leatherworking) or
-        string.find(lowerName, "leather", 1, true) or
-        string.find(lowerName, "cuir", 1, true)
-
-    if not looksLikeLeatherworking then
-        self:Print("Ouvre d'abord la fenêtre du Travail du cuir, puis réessaie.")
-        self:Print("Métier actuellement détecté : " .. (professionName ~= "" and professionName or "inconnu"))
+    if professionName == "" then
+        self:Print("Impossible de détecter le métier. Ouvre sa fenêtre et réessaie.")
         return 0
     end
 
@@ -34,11 +93,8 @@ function FLM:ImportLeatherworkingRecipes()
     for _, recipeID in ipairs(recipeIDs) do
         local info = C_TradeSkillUI.GetRecipeInfo(recipeID)
         local schematic = C_TradeSkillUI.GetRecipeSchematic(recipeID, false)
-
         local isLearned = info and (info.learned == true or info.isLearned == true)
 
-        -- Only include recipes actually learned by this character.
-        -- Unlearned recipes visible in profession lists are deliberately ignored.
         if isLearned and schematic and schematic.outputItemID
             and (not Enum or not Enum.TradeskillRecipeType
                 or schematic.recipeType ~= Enum.TradeskillRecipeType.Gathering) then
@@ -55,21 +111,20 @@ function FLM:ImportLeatherworkingRecipes()
                 local choices = {}
                 for _, reagent in ipairs(slot.reagents or {}) do
                     if reagent.itemID then
-                        table.insert(choices, reagent.itemID)
+                        choices[#choices + 1] = reagent.itemID
                     end
                 end
-
                 if #choices > 0 then
-                    table.insert(recipe.reagents, {
+                    recipe.reagents[#recipe.reagents + 1] = {
                         choices = choices,
                         itemID = choices[1],
                         count = tonumber(slot.quantityRequired) or 1,
-                    })
+                    }
                 end
             end
 
             if #recipe.reagents > 0 then
-                table.insert(imported, recipe)
+                imported[#imported + 1] = recipe
             else
                 skipped = skipped + 1
             end
@@ -78,10 +133,23 @@ function FLM:ImportLeatherworkingRecipes()
         end
     end
 
-    self.DB.recipes = imported
+    self.DB.professions = self.DB.professions or {}
+    self.DB.professions[professionName] = {
+        recipes = imported,
+        lastImport = time(),
+    }
+    self.DB.activeProfession = professionName
     self.DB.recipeProfession = professionName
+    self.DB.recipes = imported
     self.DB.recipeImportTime = time()
-    self:Print(string.format("%d recettes apprises importées (%d non apprises ou incompatibles ignorées).", #imported, skipped))
+
+    self:Print(string.format("%s : %d recettes apprises importées (%d ignorées).",
+        professionName, #imported, skipped))
     self:Refresh()
     return #imported
+end
+
+-- Compatibilité avec les anciennes commandes et boutons de la version cuir.
+function FLM:ImportLeatherworkingRecipes()
+    return self:ImportProfessionRecipes()
 end
