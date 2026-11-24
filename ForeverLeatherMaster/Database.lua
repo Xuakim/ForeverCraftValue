@@ -24,25 +24,41 @@ function FLM:RecordAuctionPrice(itemID, totalBuyout, stackCount)
     return true
 end
 
-local function GetReasonableLowPrice(values)
+-- Regroupe les prix proches (écart maximal de 20 % depuis le début du groupe).
+-- Un groupe doit représenter au moins 15 % des annonces et au moins 2 offres
+-- pour être considéré comme un niveau de prix réellement présent sur le marché.
+local function GetMarketPrice(values)
     table.sort(values)
     local count = #values
     if count == 0 then return nil end
     if count == 1 then return values[1] end
 
-    -- Médiane comme référence robuste, puis on écarte les annonces
-    -- inférieures à 70 % de cette référence. Parmi les autres,
-    -- on retient le prix le plus bas pour rester compétitif.
-    local median = values[math.floor((count + 1) / 2)]
-    local floorThreshold = median * 0.70
+    local groups = {}
+    local firstPrice, groupCount
 
     for i = 1, count do
-        if values[i] >= floorThreshold then
-            return values[i]
+        local price = values[i]
+        if not firstPrice or price > firstPrice * 1.20 then
+            if firstPrice then
+                groups[#groups + 1] = { price = firstPrice, count = groupCount }
+            end
+            firstPrice, groupCount = price, 1
+        else
+            groupCount = groupCount + 1
+        end
+    end
+    groups[#groups + 1] = { price = firstPrice, count = groupCount }
+
+    local minimumSupport = math.max(2, math.ceil(count * 0.15))
+    for i = 1, #groups do
+        if groups[i].count >= minimumSupport then
+            return groups[i].price, groups[i].count, count
         end
     end
 
-    return median
+    -- Échantillon trop dispersé : la médiane haute évite qu'une annonce isolée
+    -- au prix plancher fasse artificiellement chuter l'estimation.
+    return values[math.floor(count / 2) + 1], 0, count
 end
 
 function FLM:FinalizeAuctionPrices()
@@ -51,7 +67,7 @@ function FLM:FinalizeAuctionPrices()
     local itemCount, offerCount = 0, 0
 
     for itemID, offers in pairs(observations) do
-        local reference = GetReasonableLowPrice(offers)
+        local reference = GetMarketPrice(offers)
         if reference and reference > 0 then
             prices[itemID] = reference
             itemCount = itemCount + 1
