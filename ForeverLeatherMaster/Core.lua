@@ -29,7 +29,7 @@ local function CopyDefaults(dst, src)
 end
 
 function FLM:Print(message)
-    print("|cff35d0ffForever Leather Master:|r " .. tostring(message))
+    print("|cff35d0ffForever CraftValue:|r " .. tostring(message))
 end
 
 function FLM:FormatGold(copper)
@@ -117,7 +117,9 @@ local function HandleSlash(msg)
 end
 
 SLASH_FOREVERLEATHERMASTER1 = "/flm"
+SLASH_FOREVERCRAFTVALUE1 = "/fcv"
 SlashCmdList["FOREVERLEATHERMASTER"] = HandleSlash
+SlashCmdList["FOREVERCRAFTVALUE"] = HandleSlash
 
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
