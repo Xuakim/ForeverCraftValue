@@ -114,7 +114,7 @@ end
 
 function FLM:ShowWindow()
     if not window then
-        window = CreateFrame("Frame", "ForeverLeatherMasterFrame", UIParent, "BasicFrameTemplateWithInset")
+        window = CreateFrame("Frame", "ForeverCraftValueFrame", UIParent, "BasicFrameTemplateWithInset")
         window:SetSize(900, 500)
         window:SetFrameStrata("DIALOG")
         window:SetToplevel(true)
@@ -125,7 +125,7 @@ function FLM:ShowWindow()
         window:SetScript("OnDragStart", window.StartMoving)
         window:SetScript("OnDragStop", window.StopMovingOrSizing)
 
-        window.title = MakeFont(window, 14, "Forever Leather Master - Optimiseur de métiers")
+        window.title = MakeFont(window, 14, "Forever CraftValue - Optimiseur de métiers")
         window.title:SetPoint("TOP", 0, -8)
         window.help = MakeFont(window, 11, "Ouvre un métier, importe ses recettes, puis scanne l'HDV. Clique sur une recette pour l'ouvrir.")
         window.help:SetPoint("TOPLEFT", 16, -38)
