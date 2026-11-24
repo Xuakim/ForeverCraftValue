@@ -14,7 +14,7 @@ local function FinishScan()
     FLM.DB.lastScan = time()
     FLM.DB.lastScanCount = processed
     FLM:Print(string.format(
-        "Scan terminé : %d annonces examinées, %d offres valides, %d objets. Prix de référence = médiane des offres.",
+        "Scan terminé : %d annonces examinées, %d offres valides, %d objets. Prix de référence = groupe de prix le plus bas suffisamment représenté.",
         processed, offerCount or validOffers, itemCount
     ))
     FLM:Refresh()
