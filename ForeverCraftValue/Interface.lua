@@ -244,9 +244,10 @@ function FLM:RefreshWindow()
     local totalWidth = 860
     local tabWidth = #names > 0 and math.min(130, math.max(58, math.floor(totalWidth / #names))) or 90
     for i, name in ipairs(names) do
-        if not professionTabs[i] then
-            professionTabs[i] = MakeButton(window, name, tabWidth, function()
-                local selectedName = professionTabs[i].professionName
+        local tabIndex = i
+        if not professionTabs[tabIndex] then
+            professionTabs[tabIndex] = MakeButton(window, name, tabWidth, function()
+                local selectedName = professionTabs[tabIndex].professionName
                 if selectedName then FLM:SetActiveProfession(selectedName) end
             end)
         end
