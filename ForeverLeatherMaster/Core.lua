@@ -1,6 +1,6 @@
 local ADDON, FLM = ...
 
-FLM.VERSION = "0.3.4"
+FLM.VERSION = "0.4.0"
 FLM.DB = nil
 
 local defaults = {
@@ -8,7 +8,9 @@ local defaults = {
     ahDuration = 8, -- Durée de mise en vente en heures
     prices = {},       -- [itemID] = observed reference unit buyout (copper)
     priceUpdated = {}, -- [itemID] = timestamp of latest observation
-    recipes = {},      -- imported from the open profession window
+    recipes = {},      -- active profession recipes
+    professions = {},  -- [professionName] = { recipes = {}, lastImport = timestamp }
+    activeProfession = nil,
     lastScan = 0,
     lastScanCount = 0,
     lastResults = {},
@@ -97,7 +99,7 @@ local function HandleSlash(msg)
 
     if cmd == "help" then
         FLM:Print("/flm : ouvrir l'interface")
-        FLM:Print("Ouvre la fenêtre du Travail du cuir puis clique sur « Importer recettes ».")
+        FLM:Print("Ouvre la fenêtre du métier souhaité puis clique sur « Importer recettes ».")
         FLM:Print("À l'hôtel des ventes, clique sur « Scanner l'HDV ».")
         FLM:Print("/flm price <itemID> <cuivre> : prix manuel de test")
     elseif cmd == "minimap" then
@@ -124,6 +126,7 @@ frame:SetScript("OnEvent", function(_, event, name)
         ForeverLeatherMasterDB = ForeverLeatherMasterDB or {}
         CopyDefaults(ForeverLeatherMasterDB, defaults)
         FLM.DB = ForeverLeatherMasterDB
+        FLM:InitializeProfessionData()
         FLM:Print("v" .. FLM.VERSION .. " chargé. Tape /flm.")
     end
 end)
