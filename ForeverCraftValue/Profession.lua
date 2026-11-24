@@ -7,8 +7,12 @@ end
 
 function FLM:GetAvailableProfessions()
     local names = {}
-    for name in pairs((self.DB and self.DB.professions) or {}) do
-        names[#names + 1] = name
+    for name, profession in pairs((self.DB and self.DB.professions) or {}) do
+        -- Un onglet n'existe que si au moins une recette a été importée.
+        if type(profession) == "table" and type(profession.recipes) == "table"
+            and #profession.recipes > 0 then
+            names[#names + 1] = name
+        end
     end
     table.sort(names)
     return names
@@ -42,7 +46,9 @@ function FLM:InitializeProfessionData()
     end
 
     local active = self.DB.activeProfession
-    if not active or not self.DB.professions[active] then
+    if not active or not self.DB.professions[active]
+        or type(self.DB.professions[active].recipes) ~= "table"
+        or #self.DB.professions[active].recipes == 0 then
         if legacyName and self.DB.professions[legacyName] then
             active = legacyName
         else
@@ -52,11 +58,15 @@ function FLM:InitializeProfessionData()
     end
 
     self.DB.activeProfession = active
-    if active and self.DB.professions[active] then
-        self.DB.recipes = self.DB.professions[active].recipes or {}
+    if active and self.DB.professions[active]
+        and type(self.DB.professions[active].recipes) == "table"
+        and #self.DB.professions[active].recipes > 0 then
+        self.DB.recipes = self.DB.professions[active].recipes
         self.DB.recipeProfession = active
     else
-        self.DB.recipes = self.DB.recipes or {}
+        self.DB.activeProfession = nil
+        self.DB.recipeProfession = nil
+        self.DB.recipes = {}
     end
 end
 
@@ -134,14 +144,24 @@ function FLM:ImportProfessionRecipes()
     end
 
     self.DB.professions = self.DB.professions or {}
-    self.DB.professions[professionName] = {
-        recipes = imported,
-        lastImport = time(),
-    }
-    self.DB.activeProfession = professionName
-    self.DB.recipeProfession = professionName
-    self.DB.recipes = imported
-    self.DB.recipeImportTime = time()
+    if #imported > 0 then
+        self.DB.professions[professionName] = {
+            recipes = imported,
+            lastImport = time(),
+        }
+        self.DB.activeProfession = professionName
+        self.DB.recipeProfession = professionName
+        self.DB.recipes = imported
+        self.DB.recipeImportTime = time()
+    else
+        -- Ne pas conserver/créer un métier vide dans la liste des onglets.
+        self.DB.professions[professionName] = nil
+        local names = self:GetAvailableProfessions()
+        local fallback = names[1]
+        self.DB.activeProfession = fallback
+        self.DB.recipeProfession = fallback
+        self.DB.recipes = fallback and self.DB.professions[fallback].recipes or {}
+    end
 
     self:Print(string.format("%s : %d recettes apprises importées (%d ignorées).",
         professionName, #imported, skipped))
