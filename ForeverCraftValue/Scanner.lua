@@ -5,7 +5,7 @@ local processIndex, totalAuctions, processed, validOffers = 0, 0, 0, 0
 local targetedQueue, targetedIndex = nil, 0
 local targetedPendingItemID, targetedDeadline, targetedNextQueryAt
 local targetedCompleted, targetedTotal = 0, 0
-local TARGET_QUERY_INTERVAL, TARGET_QUERY_TIMEOUT = 0.55, 4
+local TARGET_QUERY_INTERVAL, TARGET_QUERY_TIMEOUT = 0.70, 5
 
 local function CaptureItemSearch(itemKey)
     if not itemKey or not itemKey.itemID or not C_AuctionHouse then return end
@@ -54,7 +54,7 @@ local function StartNextTargetedQuery()
     targetedDeadline = GetTime() + TARGET_QUERY_TIMEOUT
     targetedNextQueryAt = GetTime() + TARGET_QUERY_INTERVAL
     local itemKey = C_AuctionHouse.MakeItemKey and C_AuctionHouse.MakeItemKey(itemID) or { itemID = itemID }
-    local ok, result = pcall(C_AuctionHouse.SendSearchQuery, itemKey, {}, false, "")
+    local ok, result = pcall(C_AuctionHouse.SendSearchQuery, itemKey, {}, false)
     if not ok or result == false then
         FLM:Print("Recherche impossible pour l'objet " .. itemID .. " : " .. tostring(result))
         targetedPendingItemID = nil
