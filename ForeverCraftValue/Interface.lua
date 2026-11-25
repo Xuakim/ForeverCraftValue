@@ -152,6 +152,111 @@ local function MakeWindowMovable(frame)
 end
 
 local detailWindow
+local historyWindow
+
+local function ShowPriceHistory(itemID, itemName, days)
+    itemID = tonumber(itemID)
+    if not itemID then return end
+    days = tonumber(days) or 90
+
+    if not historyWindow then
+        historyWindow = CreateFrame("Frame", "FCVPriceHistoryFrame", UIParent, "BasicFrameTemplateWithInset")
+        historyWindow:SetSize(540, 350)
+        historyWindow:SetPoint("CENTER")
+        MakeWindowMovable(historyWindow)
+        historyWindow.title = MakeFont(historyWindow, 13, "Historique du prix HDV")
+        historyWindow.title:SetPoint("TOP", 0, -8)
+        historyWindow.title:SetTextColor(1, 0.78, 0.22)
+        historyWindow.subtitle = MakeFont(historyWindow, 10, "")
+        historyWindow.subtitle:SetPoint("TOPLEFT", 18, -34)
+        historyWindow.subtitle:SetWidth(300)
+        historyWindow.canvas = CreateFrame("Frame", nil, historyWindow)
+        historyWindow.canvas:SetPoint("TOPLEFT", 42, -76)
+        historyWindow.canvas:SetSize(460, 205)
+        historyWindow.canvas.lines = {}
+        historyWindow.info = MakeFont(historyWindow, 10, "")
+        historyWindow.info:SetPoint("BOTTOMLEFT", 18, 18)
+        historyWindow.info:SetWidth(500)
+        historyWindow.periodButtons = {}
+        for _, period in ipairs({7, 30, 90}) do
+            local selectedDays = period
+            local button = MakeButton(historyWindow, period .. " j", 48, function()
+                ShowPriceHistory(historyWindow.itemID, historyWindow.itemName, selectedDays)
+            end)
+            historyWindow.periodButtons[period] = button
+        end
+        historyWindow.periodButtons[7]:SetPoint("TOPRIGHT", historyWindow, "TOPRIGHT", -18, -34)
+        historyWindow.periodButtons[30]:SetPoint("RIGHT", historyWindow.periodButtons[7], "LEFT", -5, 0)
+        historyWindow.periodButtons[90]:SetPoint("RIGHT", historyWindow.periodButtons[30], "LEFT", -5, 0)
+    end
+
+    historyWindow.itemID = itemID
+    historyWindow.itemName = itemName or ("Objet " .. itemID)
+    historyWindow.title:SetText("Historique : " .. historyWindow.itemName)
+    local history = FLM.DB and FLM.DB.priceHistory and FLM.DB.priceHistory[itemID] or {}
+    local cutoff = time() - days * 86400
+    local points = {}
+    for _, point in ipairs(history) do
+        if tonumber(point.time) and point.time >= cutoff and tonumber(point.price) and point.price > 0 then
+            points[#points + 1] = point
+        end
+    end
+
+    for _, texture in ipairs(historyWindow.canvas.lines) do texture:Hide() end
+    historyWindow.canvas.lines = {}
+    local canvas = historyWindow.canvas
+    local width, height = 460, 205
+    local minPrice, maxPrice
+    for _, point in ipairs(points) do
+        local price = tonumber(point.price)
+        minPrice = not minPrice and price or math.min(minPrice, price)
+        maxPrice = not maxPrice and price or math.max(maxPrice, price)
+    end
+    historyWindow.subtitle:SetText(string.format("%d derniers jours • %d relevé(s) • prix unitaire", days, #points))
+
+    local axisX = canvas:CreateTexture(nil, "ARTWORK")
+    axisX:SetColorTexture(0.65, 0.55, 0.38, 0.9)
+    axisX:SetPoint("BOTTOMLEFT", 0, 20)
+    axisX:SetSize(width, 1)
+    local axisY = canvas:CreateTexture(nil, "ARTWORK")
+    axisY:SetColorTexture(0.65, 0.55, 0.38, 0.9)
+    axisY:SetPoint("BOTTOMLEFT", 0, 20)
+    axisY:SetSize(1, height - 20)
+    canvas.lines[#canvas.lines + 1] = axisX
+    canvas.lines[#canvas.lines + 1] = axisY
+
+    if #points == 0 then
+        historyWindow.info:SetText("Aucun historique pour cette période. Les relevés commenceront aux prochains scans HDV.")
+    else
+        local range = math.max(1, maxPrice - minPrice)
+        local plotHeight = height - 38
+        local previousX, previousY
+        for index, point in ipairs(points) do
+            local x = 8 + ((#points == 1) and 0 or ((index - 1) / (#points - 1)) * (width - 16))
+            local y = 20 + ((tonumber(point.price) - minPrice) / range) * plotHeight
+            if previousX then
+                local dx, dy = x - previousX, y - previousY
+                local segment = canvas:CreateTexture(nil, "ARTWORK")
+                segment:SetColorTexture(0.25, 0.82, 0.95, 1)
+                segment:SetSize(math.sqrt(dx * dx + dy * dy), 2)
+                segment:SetPoint("CENTER", canvas, "BOTTOMLEFT", (x + previousX) / 2, (y + previousY) / 2)
+                segment:SetRotation(-math.atan2(dy, dx))
+                canvas.lines[#canvas.lines + 1] = segment
+            end
+            local dot = canvas:CreateTexture(nil, "OVERLAY")
+            dot:SetColorTexture(1, 0.78, 0.22, 1)
+            dot:SetSize(5, 5)
+            dot:SetPoint("CENTER", canvas, "BOTTOMLEFT", x, y)
+            canvas.lines[#canvas.lines + 1] = dot
+            previousX, previousY = x, y
+        end
+        historyWindow.info:SetText("Min : " .. FLM:FormatMoneyIcons(minPrice) ..
+            "   Max : " .. FLM:FormatMoneyIcons(maxPrice) ..
+            "   |   " .. date("%d/%m", points[1].time) .. " → " .. date("%d/%m", points[#points].time))
+    end
+    historyWindow:Show()
+    historyWindow:Raise()
+end
 
 local function ShowRecipeDetails(deal)
     if not detailWindow then
@@ -187,13 +292,21 @@ local function ShowRecipeDetails(deal)
     for index, material in ipairs(details) do
         if not detailWindow.lines[index] then
             local line = MakeFont(detailWindow.child, 11, "", "GameFontHighlight")
-            line:SetPoint("TOPLEFT", 4, -(index - 1) * 48)
-            line:SetWidth(468)
-            line:SetHeight(44)
+            line:SetPoint("TOPLEFT", 4, -(index - 1) * 52)
+            line:SetWidth(390)
+            line:SetHeight(48)
             line:SetJustifyH("LEFT")
             line:SetJustifyV("MIDDLE")
             line:SetWordWrap(true)
+            local historyButton = MakeButton(detailWindow.child, "Courbe", 62, function()
+                local current = detailWindow.lines[index]
+                if current and current.material then
+                    ShowPriceHistory(current.material.itemID, current.material.name, 90)
+                end
+            end)
+            historyButton:SetPoint("RIGHT", detailWindow.child, "RIGHT", -4, -(index - 1) * 52 - 2)
             detailWindow.lines[index] = line
+            detailWindow.lines[index].historyButton = historyButton
         end
 
         local line = detailWindow.lines[index]
@@ -204,13 +317,17 @@ local function ShowRecipeDetails(deal)
         line:SetText(string.format("%s  x%s\nUnité : %s  |  Total : %s  |  Provenance : %s",
             name, tostring(quantity), unitPrice, totalPrice, material.source or "Prix inconnu"))
         line:SetTextColor(0.94, 0.88, 0.75)
+        line.material = material
+        line.historyButton:SetEnabled(tonumber(material.itemID) ~= nil)
+        line.historyButton:Show()
         line:Show()
     end
 
     for index = #details + 1, #detailWindow.lines do
         detailWindow.lines[index]:Hide()
+        detailWindow.lines[index].historyButton:Hide()
     end
-    detailWindow.child:SetHeight(math.max(1, #details * 48))
+    detailWindow.child:SetHeight(math.max(1, #details * 52))
     detailWindow.scroll:SetVerticalScroll(0)
     detailWindow:Show()
     detailWindow:Raise()
