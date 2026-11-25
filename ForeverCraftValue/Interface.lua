@@ -298,7 +298,8 @@ local function ShowRecipeDetails(deal)
             line:SetJustifyH("LEFT")
             line:SetJustifyV("MIDDLE")
             line:SetWordWrap(true)
-            local historyButton = MakeButton(detailWindow.child, "Courbe", 62, function()
+            local historyButton
+            historyButton = MakeButton(detailWindow.child, "Courbe", 62, function()
                 if historyButton and historyButton.material then
                     ShowPriceHistory(historyButton.material.itemID, historyButton.material.name, 90)
                 end
