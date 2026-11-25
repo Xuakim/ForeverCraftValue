@@ -124,6 +124,20 @@ end
 function FLM:CalculateDeals()
     if not self.DB then return {} end
 
+    -- Pour les coûts des matériaux, comparer le prix HDV au prix marchand.
+    -- Les prix marchands ne remplacent jamais les prix HDV de vente des produits.
+    local effectivePrices = {}
+    for itemID, price in pairs(self.DB.prices or {}) do
+        effectivePrices[tonumber(itemID) or itemID] = tonumber(price)
+    end
+    for itemID, price in pairs(self.DB.merchantPrices or {}) do
+        itemID, price = tonumber(itemID), tonumber(price)
+        if itemID and price and price > 0
+            and (not effectivePrices[itemID] or price < effectivePrices[itemID]) then
+            effectivePrices[itemID] = price
+        end
+    end
+
     local recipesByOutput = {}
     for _, recipe in ipairs(self.DB.recipes or {}) do
         local id = tonumber(recipe.outputItemID)
@@ -143,7 +157,7 @@ function FLM:CalculateDeals()
             local choices = reagent.choices or { reagent.itemID }
             local bestChoice
             for _, choiceID in ipairs(choices) do
-                local cost = BestItemCost(choiceID, self.DB.prices, recipesByOutput, { [outputID] = true })
+                local cost = BestItemCost(choiceID, effectivePrices, recipesByOutput, { [outputID] = true })
                 if cost and (not bestChoice or cost < bestChoice) then bestChoice = cost end
             end
 
