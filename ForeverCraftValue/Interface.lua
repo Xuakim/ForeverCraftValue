@@ -178,16 +178,18 @@ local function ShowPriceHistory(itemID, itemName, days)
         historyWindow.info:SetPoint("BOTTOMLEFT", 18, 18)
         historyWindow.info:SetWidth(500)
         historyWindow.periodButtons = {}
-        for _, period in ipairs({7, 30, 90}) do
+        for _, period in ipairs({1, 7, 30, 90}) do
             local selectedDays = period
-            local button = MakeButton(historyWindow, period .. " j", 48, function()
+            local label = period == 1 and "24 h" or (period .. " j")
+            local button = MakeButton(historyWindow, label, 44, function()
                 ShowPriceHistory(historyWindow.itemID, historyWindow.itemName, selectedDays)
             end)
             historyWindow.periodButtons[period] = button
         end
-        historyWindow.periodButtons[7]:SetPoint("TOPRIGHT", historyWindow, "TOPRIGHT", -18, -34)
-        historyWindow.periodButtons[30]:SetPoint("RIGHT", historyWindow.periodButtons[7], "LEFT", -5, 0)
-        historyWindow.periodButtons[90]:SetPoint("RIGHT", historyWindow.periodButtons[30], "LEFT", -5, 0)
+        historyWindow.periodButtons[90]:SetPoint("TOPRIGHT", historyWindow, "TOPRIGHT", -18, -34)
+        historyWindow.periodButtons[30]:SetPoint("RIGHT", historyWindow.periodButtons[90], "LEFT", -5, 0)
+        historyWindow.periodButtons[7]:SetPoint("RIGHT", historyWindow.periodButtons[30], "LEFT", -5, 0)
+        historyWindow.periodButtons[1]:SetPoint("RIGHT", historyWindow.periodButtons[7], "LEFT", -5, 0)
     end
 
     historyWindow.itemID = itemID
@@ -212,7 +214,8 @@ local function ShowPriceHistory(itemID, itemName, days)
         minPrice = not minPrice and price or math.min(minPrice, price)
         maxPrice = not maxPrice and price or math.max(maxPrice, price)
     end
-    historyWindow.subtitle:SetText(string.format("%d derniers jours • %d relevé(s) • prix unitaire", days, #points))
+    historyWindow.subtitle:SetText(string.format("%s • %d relevé(s) • prix unitaire",
+        days == 1 and "Dernières 24 heures" or (days .. " derniers jours"), #points))
 
     local axisX = canvas:CreateTexture(nil, "ARTWORK")
     axisX:SetColorTexture(0.65, 0.55, 0.38, 0.9)
@@ -252,7 +255,8 @@ local function ShowPriceHistory(itemID, itemName, days)
         end
         historyWindow.info:SetText("Min : " .. FLM:FormatMoneyIcons(minPrice) ..
             "   Max : " .. FLM:FormatMoneyIcons(maxPrice) ..
-            "   |   " .. date("%d/%m", points[1].time) .. " → " .. date("%d/%m", points[#points].time))
+            "   |   " .. date(days == 1 and "%H:%M" or "%d/%m", points[1].time) ..
+            " → " .. date(days == 1 and "%H:%M" or "%d/%m", points[#points].time))
     end
     historyWindow:Show()
     historyWindow:Raise()
