@@ -65,7 +65,7 @@ function FLM:CaptureMerchantPrices(isNewVisit)
             local ok, info = pcall(MerchantFrame.GetItemInfo, MerchantFrame, index)
             if ok and type(info) == "table" then
                 itemID = itemID or tonumber(info.itemID)
-                price = price or info.price
+                if not price or tonumber(price) == 0 then price = info.price end
                 stackCount = stackCount or info.stackCount
                 if info.isPurchasable ~= nil then isPurchasable = info.isPurchasable end
                 if info.hasExtendedCost ~= nil then extendedCost = info.hasExtendedCost end
@@ -75,7 +75,9 @@ function FLM:CaptureMerchantPrices(isNewVisit)
         if itemID then resolvedItems = resolvedItems + 1 end
         price = tonumber(price)
         stackCount = math.max(1, tonumber(stackCount) or 1)
-        if itemID and price and price > 0 and isPurchasable ~= false
+        -- Ne pas filtrer sur isPurchasable : selon la version du client,
+        -- ce booléen décrit l'utilisabilité du personnage, pas l'existence du prix.
+        if itemID and price and price > 0
             and not extendedCost and (not currencyID or currencyID == 0) then
             eligibleItems = eligibleItems + 1
             local unitPrice = math.floor(price / stackCount)
