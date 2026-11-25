@@ -60,11 +60,9 @@ Version 1.1.2
 - Suppression de la collecte des marchands PNJ ; comparaison limitée à l'HDV et à la fabrication.
 
 Version 1.0.2
-- Affichage au clic sur une recette du détail des composants, quantités, prix unitaires, coûts totaux et provenance (marchand, HDV ou fabrication).
+- Affichage au clic sur une recette du détail des composants, quantités, prix unitaires, coûts totaux et provenance (HDV ou fabrication).
 
 Version 1.0.1
-- Prise en compte automatique des prix des composants vendus par les marchands PNJ.
-- Comparaison du prix marchand, du prix HDV et du coût de fabrication pour chaque composant.
 
 Version 1.0.0
 - Passage à une gestion multi-métiers.
