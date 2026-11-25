@@ -1,10 +1,10 @@
 local ADDON, FLM = ...
 
-local function GetMerchantItemID(index)
+local function ResolveMerchantItemID(index)
     -- Certains clients exposent directement l'ID, même quand le lien n'est
     -- pas encore disponible.
     if GetMerchantItemID then
-        local itemID = GetMerchantItemID(index)
+        local itemID = _G.GetMerchantItemID(index)
         if itemID then return tonumber(itemID) end
     end
 
@@ -42,7 +42,7 @@ function FLM:CaptureMerchantPrices(isNewVisit)
     seenItems = itemCount
     for index = 1, itemCount do
         local _, _, price, stackCount, _, isPurchasable, _, extendedCost, currencyID = GetMerchantItemInfo(index)
-        local itemID = GetMerchantItemID(index)
+        local itemID = ResolveMerchantItemID(index)
         price = tonumber(price)
         stackCount = math.max(1, tonumber(stackCount) or 1)
         if itemID and price and price > 0 and isPurchasable ~= false
