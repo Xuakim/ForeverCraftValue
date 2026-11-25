@@ -114,6 +114,9 @@ function FLM:ImportProfessionRecipes()
                 outputItemID = schematic.outputItemID,
                 outputCount = math.max(1, tonumber(schematic.quantityMin) or 1),
                 learned = true,
+                -- Données de progression fournies par l'API du métier au moment de l'import.
+                canSkillUp = info.canSkillUp,
+                relativeDifficulty = info.relativeDifficulty,
                 reagents = {},
             }
 
