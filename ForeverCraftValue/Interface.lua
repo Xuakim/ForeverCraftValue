@@ -657,7 +657,15 @@ function FLM:RefreshWindow()
     if progressionOnly then
         local progressionResults = {}
         for _, deal in ipairs(results) do
-            if deal.canSkillUp == true then
+            -- canSkillUp est le signal prioritaire. Certaines builds Forever
+            -- ne le renseignent pas toujours : relativeDifficulty sert alors
+            -- de repli (Optimal=0, Medium=1, Easy=2, Trivial=3).
+            local canSkillUp = deal.canSkillUp
+            if canSkillUp == nil then
+                local difficulty = tonumber(deal.relativeDifficulty)
+                canSkillUp = difficulty ~= nil and difficulty <= 2
+            end
+            if canSkillUp == true then
                 progressionResults[#progressionResults + 1] = deal
             end
         end
