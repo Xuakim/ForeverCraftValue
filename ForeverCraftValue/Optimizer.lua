@@ -40,6 +40,51 @@ local function BestItemCost(itemID, prices, recipesByOutput, visiting)
     return best
 end
 
+-- Retourne le coût optimal et explique d'où vient le composant.
+local function BestItemCostInfo(itemID, prices, recipesByOutput, visiting)
+    itemID = tonumber(itemID)
+    if not itemID then return nil, "Prix inconnu" end
+
+    local best = prices[itemID]
+    local source = "Hôtel des ventes"
+    local ahPrice = tonumber(FLM.DB.prices and FLM.DB.prices[itemID])
+    local merchantPrice = tonumber(FLM.DB.merchantPrices and FLM.DB.merchantPrices[itemID])
+
+    if merchantPrice and merchantPrice > 0 and (not ahPrice or merchantPrice <= ahPrice) then
+        source = "Marchand PNJ"
+    elseif not best then
+        source = "Prix inconnu"
+    end
+
+    local alternatives = recipesByOutput[itemID]
+    if alternatives and not visiting[itemID] then
+        visiting[itemID] = true
+        for _, recipe in ipairs(alternatives) do
+            local total, valid = 0, true
+            for _, reagent in ipairs(recipe.reagents or {}) do
+                local choices = reagent.choices or { reagent.itemID }
+                local cheapest
+                for _, choiceID in ipairs(choices) do
+                    local choiceCost = BestItemCost(choiceID, prices, recipesByOutput, visiting)
+                    if choiceCost and (not cheapest or choiceCost < cheapest) then cheapest = choiceCost end
+                end
+                if not cheapest then valid = false break end
+                total = total + cheapest * (tonumber(reagent.count) or 0)
+            end
+            if valid then
+                local craftCost = total / math.max(1, tonumber(recipe.outputCount) or 1)
+                if not best or craftCost < best then
+                    best = craftCost
+                    source = "Fabriqué : " .. tostring(recipe.name or "recette connue")
+                end
+            end
+        end
+        visiting[itemID] = nil
+    end
+
+    return best, source
+end
+
 -- Construit l'ensemble des objets utiles aux recettes du métier actif.
 -- Les recettes de tous les métiers importés sont utilisées pour développer
 -- récursivement les composants qui peuvent eux-mêmes être fabriqués.
@@ -152,20 +197,36 @@ function FLM:CalculateDeals()
         local outputID = tonumber(recipe.outputItemID)
         local salePrice = outputID and self.DB.prices[outputID]
         local totalCost, complete, missingMaterials = 0, true, 0
+        local materialDetails = {}
 
         for _, reagent in ipairs(recipe.reagents or {}) do
             local choices = reagent.choices or { reagent.itemID }
-            local bestChoice
+            local bestChoice, bestChoiceID, bestSource
             for _, choiceID in ipairs(choices) do
-                local cost = BestItemCost(choiceID, effectivePrices, recipesByOutput, { [outputID] = true })
-                if cost and (not bestChoice or cost < bestChoice) then bestChoice = cost end
+                local cost, source = BestItemCostInfo(choiceID, effectivePrices, recipesByOutput, { [outputID] = true })
+                if cost and (not bestChoice or cost < bestChoice) then
+                    bestChoice, bestChoiceID, bestSource = cost, tonumber(choiceID), source
+                end
             end
 
+            local quantity = tonumber(reagent.count) or 0
             if not bestChoice then
                 complete = false
                 missingMaterials = missingMaterials + 1
+                materialDetails[#materialDetails + 1] = {
+                    itemID = tonumber(reagent.itemID), name = reagent.name,
+                    count = quantity, source = "Prix inconnu",
+                }
             else
-                totalCost = totalCost + bestChoice * (tonumber(reagent.count) or 0)
+                local itemName = reagent.name
+                if bestChoiceID and GetItemInfo then itemName = GetItemInfo(bestChoiceID) or itemName end
+                materialDetails[#materialDetails + 1] = {
+                    itemID = bestChoiceID or tonumber(reagent.itemID),
+                    name = itemName or ("Composant " .. tostring(bestChoiceID or reagent.itemID or "?")),
+                    count = quantity, unitCost = bestChoice,
+                    totalCost = bestChoice * quantity, source = bestSource,
+                }
+                totalCost = totalCost + bestChoice * quantity
             end
         end
 
@@ -198,6 +259,7 @@ function FLM:CalculateDeals()
                 outputCount = outputCount,
                 salePriceUpdated = self.DB.priceUpdated and self.DB.priceUpdated[outputID],
                 materialCost = complete and totalCost or nil,
+                materialDetails = materialDetails,
                 partialMaterialCost = totalCost,
                 missingMaterials = missingMaterials,
                 pricesComplete = hasCompletePrices,
