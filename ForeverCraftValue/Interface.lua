@@ -495,16 +495,17 @@ function FLM:ShowWindow()
         end)
         window.clearSearchButton:SetPoint("LEFT", window.searchBox, "RIGHT", 6, 0)
 
-        window.progressionButton = MakeButton(window, "Progression : OFF", 126, function()
+        window.progressionButton = MakeButton(window, "Gain garanti : OFF", 126, function()
             progressionOnly = not progressionOnly
-            window.progressionButton:SetText(progressionOnly and "Progression : ON" or "Progression : OFF")
+            window.progressionButton:SetText(progressionOnly and "Gain garanti : ON" or "Gain garanti : OFF")
             FLM:RefreshWindow()
         end)
         window.progressionButton:SetPoint("LEFT", window.clearSearchButton, "RIGHT", 8, 0)
         window.progressionButton:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText("Afficher uniquement les recettes qui peuvent encore donner un point de compétence.")
-            GameTooltip:AddLine("Les données sont actualisées lors de l'import des recettes.", 1, 0.82, 0.45, true)
+            GameTooltip:SetText("Afficher uniquement les recettes qui donnent un point de compétence à coup sûr.")
+            GameTooltip:AddLine("Seules les recettes de difficulté Optimal (orange) sont conservées.", 1, 0.82, 0.45, true)
+            GameTooltip:AddLine("Réimporte les recettes après chaque évolution du métier.", 1, 0.82, 0.45, true)
             GameTooltip:Show()
         end)
         window.progressionButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -655,21 +656,15 @@ function FLM:RefreshWindow()
         results = filtered
     end
     if progressionOnly then
-        local progressionResults = {}
+        local guaranteedResults = {}
         for _, deal in ipairs(results) do
-            -- canSkillUp est le signal prioritaire. Certaines builds Forever
-            -- ne le renseignent pas toujours : relativeDifficulty sert alors
-            -- de repli (Optimal=0, Medium=1, Easy=2, Trivial=3).
-            local canSkillUp = deal.canSkillUp
-            if canSkillUp == nil then
-                local difficulty = tonumber(deal.relativeDifficulty)
-                canSkillUp = difficulty ~= nil and difficulty <= 2
-            end
-            if canSkillUp == true then
-                progressionResults[#progressionResults + 1] = deal
+            -- Optimal (0 / orange) est le seul niveau qui garantit encore
+            -- un point de compétence. Medium et Easy ne sont que des chances.
+            if tonumber(deal.relativeDifficulty) == 0 then
+                guaranteedResults[#guaranteedResults + 1] = deal
             end
         end
-        results = progressionResults
+        results = guaranteedResults
     end
     SortResults(results)
 
@@ -721,7 +716,7 @@ function FLM:RefreshWindow()
     window.scroll:SetVerticalScroll(0)
     window.empty:SetShown(#results == 0)
     if #results == 0 and progressionOnly then
-        window.empty:SetText("Aucune recette ne peut actuellement faire gagner de point de compétence. Réimporte les recettes depuis la fenêtre du métier pour actualiser leur progression.")
+        window.empty:SetText("Aucune recette à gain garanti (difficulté orange / Optimal). Réimporte les recettes depuis la fenêtre du métier pour actualiser leur difficulté.")
     elseif #results == 0 and query ~= "" then
         window.empty:SetText("Aucune recette ou aucun objet fabriqué ne correspond à « " .. query .. " ».")
     else
