@@ -216,89 +216,6 @@ local function ShowRecipeDetails(deal)
     detailWindow:Raise()
 end
 
-local merchantCollectorWindow
-
-function FLM:RefreshMerchantCollector()
-    if not merchantCollectorWindow or not merchantCollectorWindow:IsShown() then return end
-    self:ShowMerchantCollector()
-end
-
-function FLM:ShowMerchantCollector()
-    if not merchantCollectorWindow then
-        local frame = CreateFrame("Frame", "FCVMerchantCollectorFrame", UIParent, "BasicFrameTemplateWithInset")
-        merchantCollectorWindow = frame
-        frame:SetSize(570, 430)
-        frame:SetPoint("CENTER")
-        MakeWindowMovable(frame)
-        frame.title = MakeFont(frame, 13, "Collecte des prix des marchands PNJ")
-        frame.title:SetPoint("TOP", 0, -8)
-        frame.title:SetTextColor(1, 0.78, 0.22)
-        frame.info = MakeFont(frame, 11, "Pour remplir la base, va parler aux marchands et ouvre leur fenêtre. Les prix en or sont enregistrés automatiquement.")
-        frame.info:SetPoint("TOPLEFT", 18, -38)
-        frame.info:SetWidth(530)
-        frame.info:SetJustifyH("LEFT")
-        frame.info:SetWordWrap(true)
-        frame.summary = MakeFont(frame, 12, "")
-        frame.summary:SetPoint("TOPLEFT", 18, -78)
-        frame.summary:SetTextColor(1, 0.84, 0.48)
-        frame.scroll = CreateFrame("ScrollFrame", "FCVMerchantCollectorScroll", frame, "UIPanelScrollFrameTemplate")
-        frame.scroll:SetPoint("TOPLEFT", 18, -108)
-        frame.scroll:SetPoint("BOTTOMRIGHT", -34, 18)
-        frame.scroll:SetClipsChildren(true)
-        frame.child = CreateFrame("Frame", nil, frame.scroll)
-        frame.child:SetWidth(500)
-        frame.child:SetHeight(1)
-        frame.scroll:SetScrollChild(frame.child)
-        frame.lines = {}
-    end
-
-    local visits = self.DB and self.DB.merchantVisits or {}
-    local entries, totalVisits = {}, 0
-    for _, visit in pairs(visits) do
-        entries[#entries + 1] = visit
-        totalVisits = totalVisits + (tonumber(visit.visits) or 0)
-    end
-    table.sort(entries, function(a, b)
-        if (a.lastVisit or 0) == (b.lastVisit or 0) then return tostring(a.name) < tostring(b.name) end
-        return (a.lastVisit or 0) > (b.lastVisit or 0)
-    end)
-
-    local priceCount = 0
-    for _ in pairs((self.DB and self.DB.merchantPrices) or {}) do priceCount = priceCount + 1 end
-    merchantCollectorWindow.summary:SetText(string.format(
-        "%d marchands différents | %d visites | %d prix PNJ enregistrés",
-        #entries, totalVisits, priceCount
-    ))
-    for index, visit in ipairs(entries) do
-        if not merchantCollectorWindow.lines[index] then
-            local line = MakeFont(merchantCollectorWindow.child, 11, "", "GameFontHighlight")
-            line:SetPoint("TOPLEFT", 4, -(index - 1) * 38)
-            line:SetWidth(490)
-            line:SetHeight(34)
-            line:SetJustifyH("LEFT")
-            line:SetJustifyV("MIDDLE")
-            merchantCollectorWindow.lines[index] = line
-        end
-        local stamp = visit.lastVisit and date("%d/%m/%Y %H:%M", visit.lastVisit) or "date inconnue"
-        merchantCollectorWindow.lines[index]:SetText(string.format(
-            "%s — %s\n%d visite(s) | %d article(s) vus | Dernière visite : %s",
-            visit.name or "Marchand inconnu", visit.zone or "Zone inconnue",
-            tonumber(visit.visits) or 0, tonumber(visit.items) or 0, stamp
-        ))
-        merchantCollectorWindow.lines[index]:Show()
-    end
-    for index = #entries + 1, #merchantCollectorWindow.lines do merchantCollectorWindow.lines[index]:Hide() end
-    merchantCollectorWindow.child:SetHeight(math.max(1, #entries * 38))
-    merchantCollectorWindow.scroll:SetVerticalScroll(0)
-    if #entries == 0 then
-        merchantCollectorWindow.info:SetText("Aucun marchand recensé pour le moment. Va voir un marchand PNJ et ouvre sa fenêtre : l'addon enregistrera automatiquement son nom, sa zone et les prix des articles achetables en or.")
-    else
-        merchantCollectorWindow.info:SetText("Continue à visiter les marchands et à ouvrir leur fenêtre. Les prix en or sont ajoutés ou actualisés automatiquement. Les marchands déjà rencontrés restent dans cette liste.")
-    end
-    merchantCollectorWindow:Show()
-    merchantCollectorWindow:Raise()
-end
-
 local function CreateResultRow(parent, index)
     local row = CreateFrame("Frame", nil, parent)
     row:SetHeight(ROW_HEIGHT)
@@ -422,10 +339,6 @@ function FLM:ShowWindow()
             end
             window.durationButtons[hours] = button
         end
-        window.merchantButton = MakeButton(window, "Visites PNJ", 100, function()
-            FLM:ShowMerchantCollector()
-        end)
-        window.merchantButton:SetPoint("LEFT", window.durationButtons[24], "RIGHT", 10, 0)
 
         window.searchLabel = MakeFont(window, 11, "Rechercher :")
         window.searchLabel:SetPoint("TOPLEFT", 16, -120)
@@ -646,7 +559,6 @@ function FLM:RefreshWindow()
 
     local recipeCount = #(self.DB.recipes or {})
     local priceCount = CountEntries(self.DB.prices)
-    local merchantPriceCount = CountEntries(self.DB.merchantPrices)
     local scanText = self.DB.lastScan and self.DB.lastScan > 0
         and (date("%d/%m %H:%M", self.DB.lastScan) .. " (" ..
             (self.DB.lastScanMode == "full" and "complet" or "ciblé") .. ")") or "jamais"
@@ -655,8 +567,8 @@ function FLM:RefreshWindow()
         button:SetEnabled(hours ~= duration)
     end
     window.status:SetText(string.format(
-        "%s | %d recettes | %d prix HDV | %d prix PNJ | %d recettes calculables | Dernier scan : %s | Commission : %.0f%% | Durée : %dh",
-        self.DB.activeProfession or "Aucun métier sélectionné", recipeCount, priceCount, merchantPriceCount, #results, scanText,
+        "%s | %d recettes | %d prix HDV | %d recettes calculables | Dernier scan : %s | Commission : %.0f%% | Durée : %dh",
+        self.DB.activeProfession or "Aucun métier sélectionné", recipeCount, priceCount, #results, scanText,
         (tonumber(self.DB.ahCut) or 0.05) * 100, duration
     ))
 end
