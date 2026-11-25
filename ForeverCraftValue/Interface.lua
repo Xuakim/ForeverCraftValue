@@ -192,6 +192,7 @@ function FLM:ShowWindow()
     if not window then
         window = CreateFrame("Frame", "ForeverCraftValueFrame", UIParent, "BasicFrameTemplateWithInset")
         window:SetSize(950, 540)
+        window:SetScale(0.85)
         if window.SetBackdrop then
             window:SetBackdrop({
                 bgFile = "Interface\\Buttons\\WHITE8X8",
@@ -199,7 +200,7 @@ function FLM:ShowWindow()
                 tile = false, edgeSize = 14,
                 insets = {left = 4, right = 4, top = 4, bottom = 4},
             })
-            window:SetBackdropColor(0.025, 0.038, 0.048, 0.98)
+            window:SetBackdropColor(0.025, 0.038, 0.048, 0.86)
             window:SetBackdropBorderColor(0.12, 0.34, 0.39, 1)
         end
         window:SetFrameStrata("DIALOG")
