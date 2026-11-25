@@ -23,6 +23,25 @@ local function UpdateVisibility()
     end
 end
 
+local function UpdateHoverVisibility()
+    if not button or not FLM.DB or FLM.DB.minimap.hide then return end
+    local overMinimap = Minimap and Minimap.IsMouseOver and Minimap:IsMouseOver()
+    local overButton = button.IsMouseOver and button:IsMouseOver()
+    if overMinimap or overButton then
+        button:Show()
+    else
+        button:Hide()
+    end
+end
+
+local function ScheduleHoverCheck()
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0.15, UpdateHoverVisibility)
+    else
+        UpdateHoverVisibility()
+    end
+end
+
 function FLM:ToggleMinimapButton()
     if not self.DB then return end
     self.DB.minimap.hide = not self.DB.minimap.hide
@@ -57,13 +76,17 @@ local function CreateMinimapButton()
     highlight:SetAllPoints()
 
     button:SetScript("OnEnter", function(self)
+        if FLM.DB and not FLM.DB.minimap.hide then self:Show() end
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Forever CraftValue", 0.2, 0.8, 1)
         GameTooltip:AddLine("Clic gauche : ouvrir/fermer", 1, 1, 1)
         GameTooltip:AddLine("Clic droit : actualiser le classement", 1, 1, 1)
         GameTooltip:Show()
     end)
-    button:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    button:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+        ScheduleHoverCheck()
+    end)
 
     button:SetScript("OnClick", function(_, mouseButton)
         if mouseButton == "RightButton" then
@@ -91,7 +114,15 @@ local function CreateMinimapButton()
     end)
     button:SetScript("OnDragStop", function(self)
         self:SetScript("OnUpdate", nil)
+        ScheduleHoverCheck()
     end)
+
+    if Minimap.HookScript then
+        Minimap:HookScript("OnEnter", function()
+            if FLM.DB and not FLM.DB.minimap.hide then button:Show() end
+        end)
+        Minimap:HookScript("OnLeave", ScheduleHoverCheck)
+    end
 
     UpdatePosition()
     UpdateVisibility()
