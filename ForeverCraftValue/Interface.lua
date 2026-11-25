@@ -61,7 +61,36 @@ local function MakeButton(parent, label, width, callback)
     button:SetSize(width, 25)
     button:SetText(label)
     button:SetScript("OnClick", callback)
+    local function StateTexture(r, g, b, a)
+        local texture = button:CreateTexture(nil, "BACKGROUND")
+        texture:SetAllPoints(button)
+        texture:SetColorTexture(r, g, b, a or 1)
+        return texture
+    end
+    button:SetNormalTexture(StateTexture(0.10, 0.15, 0.19, 1))
+    button:SetHighlightTexture(StateTexture(0.16, 0.29, 0.32, 0.75))
+    button:SetPushedTexture(StateTexture(0.05, 0.10, 0.13, 1))
+    local font = button:GetFontString()
+    if font then
+        font:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+        font:SetTextColor(0.82, 0.91, 0.93)
+    end
     return button
+end
+
+local function StyleEditBox(editBox)
+    editBox:SetTextColor(0.90, 0.95, 0.96)
+    editBox:SetTextInsets(7, 7, 0, 0)
+    if editBox.SetBackdrop then
+        editBox:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = false, edgeSize = 8,
+            insets = {left = 2, right = 2, top = 2, bottom = 2},
+        })
+        editBox:SetBackdropColor(0.035, 0.055, 0.07, 1)
+        editBox:SetBackdropBorderColor(0.16, 0.34, 0.38, 0.9)
+    end
 end
 
 local function MakeColumn(parent, text, width, justify)
@@ -95,9 +124,9 @@ local function CreateResultRow(parent, index)
     row.bg = row:CreateTexture(nil, "BACKGROUND")
     row.bg:SetAllPoints()
     if index % 2 == 0 then
-        row.bg:SetColorTexture(1, 1, 1, 0.035)
+        row.bg:SetColorTexture(0.12, 0.18, 0.21, 0.38)
     else
-        row.bg:SetColorTexture(0, 0, 0, 0.12)
+        row.bg:SetColorTexture(0.025, 0.045, 0.055, 0.42)
     end
 
     row.nameButton = CreateFrame("Button", nil, row)
@@ -163,6 +192,16 @@ function FLM:ShowWindow()
     if not window then
         window = CreateFrame("Frame", "ForeverCraftValueFrame", UIParent, "BasicFrameTemplateWithInset")
         window:SetSize(950, 540)
+        if window.SetBackdrop then
+            window:SetBackdrop({
+                bgFile = "Interface\\Buttons\\WHITE8X8",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                tile = false, edgeSize = 14,
+                insets = {left = 4, right = 4, top = 4, bottom = 4},
+            })
+            window:SetBackdropColor(0.025, 0.038, 0.048, 0.98)
+            window:SetBackdropBorderColor(0.12, 0.34, 0.39, 1)
+        end
         window:SetFrameStrata("DIALOG")
         window:SetToplevel(true)
         window:SetPoint("CENTER")
@@ -174,8 +213,10 @@ function FLM:ShowWindow()
 
         window.title = MakeFont(window, 14, "Forever CraftValue - Optimiseur de métiers")
         window.title:SetPoint("TOP", 0, -8)
+        window.title:SetTextColor(0.35, 0.88, 0.88)
         window.help = MakeFont(window, 11, "Importe tes métiers puis lance un scan ciblé des objets utiles aux crafts. Le scan complet reste disponible.")
         window.help:SetPoint("TOPLEFT", 16, -38)
+        window.help:SetTextColor(0.62, 0.72, 0.76)
 
         window.professionButton = MakeButton(window, "Importer recettes", 135, function()
             FLM:ImportProfessionRecipes()
@@ -226,6 +267,7 @@ function FLM:ShowWindow()
         window.searchBox:SetPoint("LEFT", window.searchLabel, "RIGHT", 8, 0)
         window.searchBox:SetAutoFocus(false)
         window.searchBox:SetMaxLetters(80)
+        StyleEditBox(window.searchBox)
         window.searchBox:SetScript("OnTextChanged", function()
             FLM:RefreshWindow()
         end)
@@ -239,6 +281,7 @@ function FLM:ShowWindow()
         window.status:SetPoint("BOTTOMLEFT", 16, 13)
         window.status:SetWidth(850)
         window.status:SetJustifyH("LEFT")
+        window.status:SetTextColor(0.56, 0.70, 0.74)
 
         local header = CreateFrame("Frame", nil, window)
         header:SetPoint("TOPLEFT", 14, -150)
@@ -259,6 +302,7 @@ function FLM:ShowWindow()
         window.sortLabel = MakeFont(window.sortButton, 11, "BÉNÉFICE ▼", "GameFontNormal")
         window.sortLabel:SetAllPoints()
         window.sortLabel:SetJustifyH("RIGHT")
+        window.sortLabel:SetTextColor(0.34, 0.84, 0.86)
         window.sortButton:SetScript("OnClick", function()
             sortDescending = not sortDescending
             window.sortLabel:SetText(sortDescending and "BÉNÉFICE ▼" or "BÉNÉFICE ▲")
@@ -268,7 +312,7 @@ function FLM:ShowWindow()
         local hMargin = MakeColumn(header, "MARGE", 65, "RIGHT")
         hMargin:SetPoint("RIGHT", header, "RIGHT", -7, 0)
         local separator = window:CreateTexture(nil, "ARTWORK")
-        separator:SetColorTexture(0.8, 0.65, 0.25, 0.65)
+        separator:SetColorTexture(0.12, 0.55, 0.59, 0.85)
         separator:SetHeight(1)
         separator:SetPoint("TOPLEFT", 16, -170)
         separator:SetPoint("TOPRIGHT", -96, -170)
@@ -300,6 +344,9 @@ function FLM:RefreshWindow()
         if not professionTabs[tabIndex] then
             local button = CreateFrame("Button", nil, window)
             button:SetSize(36, 36)
+            button.tile = button:CreateTexture(nil, "BACKGROUND")
+            button.tile:SetAllPoints()
+            button.tile:SetColorTexture(0.045, 0.075, 0.09, 0.95)
             button.icon = button:CreateTexture(nil, "ARTWORK")
             button.icon:SetPoint("TOPLEFT", 3, -3)
             button.icon:SetPoint("BOTTOMRIGHT", -3, 3)
@@ -312,22 +359,22 @@ function FLM:RefreshWindow()
             button.selection:SetPoint("BOTTOMRIGHT", button.icon, "BOTTOMRIGHT", 0, 0)
             button.selection:SetFrameLevel(button:GetFrameLevel() + 2)
             button.selection.top = button.selection:CreateTexture(nil, "OVERLAY")
-            button.selection.top:SetColorTexture(1, 0.78, 0.12, 1)
+            button.selection.top:SetColorTexture(0.20, 0.90, 0.88, 1)
             button.selection.top:SetPoint("TOPLEFT")
             button.selection.top:SetPoint("TOPRIGHT")
             button.selection.top:SetHeight(2)
             button.selection.bottom = button.selection:CreateTexture(nil, "OVERLAY")
-            button.selection.bottom:SetColorTexture(1, 0.78, 0.12, 1)
+            button.selection.bottom:SetColorTexture(0.20, 0.90, 0.88, 1)
             button.selection.bottom:SetPoint("BOTTOMLEFT")
             button.selection.bottom:SetPoint("BOTTOMRIGHT")
             button.selection.bottom:SetHeight(2)
             button.selection.left = button.selection:CreateTexture(nil, "OVERLAY")
-            button.selection.left:SetColorTexture(1, 0.78, 0.12, 1)
+            button.selection.left:SetColorTexture(0.20, 0.90, 0.88, 1)
             button.selection.left:SetPoint("TOPLEFT")
             button.selection.left:SetPoint("BOTTOMLEFT")
             button.selection.left:SetWidth(2)
             button.selection.right = button.selection:CreateTexture(nil, "OVERLAY")
-            button.selection.right:SetColorTexture(1, 0.78, 0.12, 1)
+            button.selection.right:SetColorTexture(0.20, 0.90, 0.88, 1)
             button.selection.right:SetPoint("TOPRIGHT")
             button.selection.right:SetPoint("BOTTOMRIGHT")
             button.selection.right:SetWidth(2)
