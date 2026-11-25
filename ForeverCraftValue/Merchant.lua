@@ -12,7 +12,16 @@ local function GetMerchantItemID(index)
     return tonumber(string.match(link, "item:(%d+)"))
 end
 
-function FLM:CaptureMerchantPrices()
+local function GetCurrentMerchantIdentity()
+    local name
+    if MerchantFrameTitleText and MerchantFrameTitleText.GetText then name = MerchantFrameTitleText:GetText() end
+    if not name or name == "" then if UnitName then name = UnitName("target") end end
+    if not name or name == "" then name = "Marchand inconnu" end
+    local zone = (GetRealZoneText and GetRealZoneText()) or (GetZoneText and GetZoneText()) or "Zone inconnue"
+    return tostring(name), tostring(zone)
+end
+
+function FLM:CaptureMerchantPrices(isNewVisit)
     if not self.DB or not GetMerchantNumItems or not GetMerchantItemInfo then return 0 end
 
     self.DB.merchantPrices = self.DB.merchantPrices or {}
@@ -38,16 +47,31 @@ function FLM:CaptureMerchantPrices()
         end
     end
 
-    if changed then
-        self:Print(string.format("Prix marchand actualisés (%d article(s)).", captured))
+    if isNewVisit then
+        self.DB.merchantVisits = self.DB.merchantVisits or {}
+        local name, zone = GetCurrentMerchantIdentity()
+        local key = string.lower(name .. "|" .. zone)
+        local visit = self.DB.merchantVisits[key]
+        local firstVisit = not visit
+        if not visit then
+            visit = { name = name, zone = zone, firstVisit = time(), visits = 0, items = 0 }
+            self.DB.merchantVisits[key] = visit
+        end
+        visit.visits = (tonumber(visit.visits) or 0) + 1
+        visit.lastVisit = time()
+        visit.items = math.max(tonumber(visit.items) or 0, captured)
+        if firstVisit then self:Print("Nouveau marchand recensé : " .. name .. " (" .. zone .. ").") end
+        self:Refresh()
+    elseif changed then
         self:Refresh()
     end
+    if changed then self:Print(string.format("Prix marchand actualisés (%d article(s)).", captured)) end
     return captured
 end
 
 local merchantFrame = CreateFrame("Frame")
 merchantFrame:RegisterEvent("MERCHANT_SHOW")
 merchantFrame:RegisterEvent("MERCHANT_UPDATE")
-merchantFrame:SetScript("OnEvent", function()
-    FLM:CaptureMerchantPrices()
+merchantFrame:SetScript("OnEvent", function(_, event)
+    FLM:CaptureMerchantPrices(event == "MERCHANT_SHOW")
 end)
