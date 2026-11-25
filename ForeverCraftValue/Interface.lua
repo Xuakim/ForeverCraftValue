@@ -320,10 +320,15 @@ function FLM:ShowWindow()
         end)
         window.professionButton:SetPoint("TOPLEFT", 16, -58)
 
+        window.clearRecipesButton = MakeButton(window, "Vider recettes", 105, function()
+            FLM:ClearImportedRecipes()
+        end)
+        window.clearRecipesButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
+
         window.scanButton = MakeButton(window, "Scan ciblé", 105, function()
             FLM:StartAuctionScan()
         end)
-        window.scanButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
+        window.scanButton:SetPoint("LEFT", window.clearRecipesButton, "RIGHT", 8, 0)
         window.durationLabel = MakeFont(window, 11, "Durée :")
         window.durationLabel:SetPoint("LEFT", window.scanButton, "RIGHT", 14, 0)
         window.durationButtons = {}
