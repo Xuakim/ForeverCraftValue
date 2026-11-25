@@ -327,13 +327,13 @@ function FLM:RefreshWindow()
         local tabIndex = i
         if not professionTabs[tabIndex] then
             local button = CreateFrame("Button", nil, window)
-            button:SetSize(36, 36)
+            button:SetSize(72, 72)
             button.tile = button:CreateTexture(nil, "BACKGROUND")
             button.tile:SetAllPoints()
             button.tile:SetColorTexture(0.045, 0.075, 0.09, 0.95)
             button.icon = button:CreateTexture(nil, "ARTWORK")
-            button.icon:SetPoint("TOPLEFT", 3, -3)
-            button.icon:SetPoint("BOTTOMRIGHT", -3, 3)
+            button.icon:SetPoint("TOPLEFT", 6, -6)
+            button.icon:SetPoint("BOTTOMRIGHT", -6, 6)
             button.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
             button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
             -- Bordure dorée dessinée exactement sur le carré de l'icône
@@ -379,7 +379,7 @@ function FLM:RefreshWindow()
         tab.professionName = name
         tab.icon:SetTexture(GetProfessionIcon(name))
         tab:ClearAllPoints()
-        tab:SetPoint("TOPRIGHT", window, "TOPRIGHT", -9, -88 - (i - 1) * 39)
+        tab:SetPoint("TOPRIGHT", window, "TOPRIGHT", -9, -88 - (i - 1) * 75)
         tab.selection:SetShown(name == self.DB.activeProfession)
         tab:Show()
     end
