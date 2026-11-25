@@ -107,7 +107,6 @@ function FLM:StartAuctionScan()
     if targetedQueue then
         self:Print("Un scan est déjà en cours.") return false
     end
-    if mode == "targeted" then
         if not C_AuctionHouse.SendSearchQuery or not C_AuctionHouse.GetNumItemSearchResults or not C_AuctionHouse.GetItemSearchResultInfo then
             self:Print("Les recherches HDV ciblées ne sont pas disponibles sur ce client.") return false
         end
@@ -125,6 +124,4 @@ function FLM:StartAuctionScan()
         targetedNextQueryAt = GetTime()
         self:Print(string.format("Scan ciblé lancé : %d objets nécessaires aux recettes importées. Seuls ces objets sont recherchés.", #queue))
         return true
-    end
-    return true
 end
