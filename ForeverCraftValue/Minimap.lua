@@ -3,69 +3,44 @@ local ADDON, FLM = ...
 local BUTTON_NAME = "ForeverCraftValueMinimapButton"
 local ICON = "Interface\\Icons\\INV_Misc_ArmorKit_17"
 local button
-local HOVER_MARGIN = 32
-local HOVER_LEAVE_DELAY = 0.45
-local FADE_DURATION = 0.28
 
+-- Same positioning model as Questie's LibDBIcon: a small radius outside the minimap edge.
 local function UpdatePosition()
     if not button or not FLM.DB then return end
-    local angle = math.rad(tonumber(FLM.DB.minimap.angle) or 220)
 
-    -- Keep the button outside the minimap's masked area and its border.
-    local radius = (Minimap:GetWidth() / 2) + 8
-    local x = math.cos(angle) * radius
-    local y = math.sin(angle) * radius
+    local angle = math.rad(tonumber(FLM.DB.minimap.angle) or 220)
+    local radius = 5
+    local width = Minimap:GetWidth() / 2 + radius
+    local height = Minimap:GetHeight() / 2 + radius
+    local x = math.cos(angle) * width
+    local y = math.sin(angle) * height
 
     button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
 
-local function FadeTo(target)
-    if not button then return end
-    if target > 0 then button:Show() end
-    button.fadeStart = button:GetAlpha()
-    button.fadeTarget = target
-    button.fadeElapsed = 0
+local function ShowButtonImmediately()
+    if not button or not FLM.DB or FLM.DB.minimap.hide then return end
+    button.fadeOut:Stop()
+    button:SetAlpha(1)
+    button:Show()
 end
 
-local function FadeIn()
-    FadeTo(1)
-end
-
-local function FadeOut()
-    FadeTo(0)
+local function FadeButtonOut()
+    if not button or not FLM.DB or FLM.DB.minimap.hide then return end
+    button.fadeOut:Play()
 end
 
 local function UpdateVisibility()
     if not button or not FLM.DB then return end
+
+    button.fadeOut:Stop()
     if FLM.DB.minimap.hide then
-        button.fadeTarget = nil
-        button:SetAlpha(0)
         button:Hide()
     else
         button:SetAlpha(0)
         button:Show()
-        button.fadeTarget = nil
-    end
-end
-
-local function UpdateHoverVisibility()
-    if not button or not FLM.DB or FLM.DB.minimap.hide then return end
-
-    local overMinimap = Minimap and Minimap.IsMouseOver and Minimap:IsMouseOver(HOVER_MARGIN)
-    local overButton = button.IsMouseOver and button:IsMouseOver()
-    if overMinimap or overButton then
-        FadeIn()
-    else
-        FadeOut()
-    end
-end
-
-local function ScheduleHoverCheck()
-    if C_Timer and C_Timer.After then
-        C_Timer.After(HOVER_LEAVE_DELAY, UpdateHoverVisibility)
-    else
-        UpdateHoverVisibility()
+        -- The button stays hidden until the minimap is entered.
     end
 end
 
@@ -79,11 +54,11 @@ end
 local function CreateMinimapButton()
     if button then return end
 
-    -- UIParent prevents the minimap's circular mask from clipping the outer button.
-    button = CreateFrame("Button", BUTTON_NAME, UIParent)
+    -- LibDBIcon/Questie parents its button to Minimap and anchors it just beyond its edge.
+    button = CreateFrame("Button", BUTTON_NAME, Minimap)
     button:SetSize(32, 32)
-    button:SetFrameStrata(Minimap:GetFrameStrata())
-    button:SetFrameLevel(Minimap:GetFrameLevel() + 8)
+    button:SetFrameStrata("MEDIUM")
+    button:SetFrameLevel(8)
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:RegisterForDrag("LeftButton")
 
@@ -103,17 +78,33 @@ local function CreateMinimapButton()
     highlight:SetBlendMode("ADD")
     highlight:SetAllPoints()
 
+    -- Match LibDBIcon's fade: one-second grace period, then a 0.2s fade.
+    button.fadeOut = button:CreateAnimationGroup()
+    local fade = button.fadeOut:CreateAnimation("Alpha")
+    fade:SetOrder(1)
+    fade:SetDuration(0.2)
+    fade:SetFromAlpha(1)
+    fade:SetToAlpha(0)
+    fade:SetStartDelay(1)
+    button.fadeOut:SetToFinalAlpha(true)
+    button.fadeOut:SetScript("OnFinished", function()
+        if button and button:GetAlpha() <= 0.01 then
+            button:Hide()
+        end
+    end)
+
     button:SetScript("OnEnter", function(self)
-        if FLM.DB and not FLM.DB.minimap.hide then FadeIn() end
+        ShowButtonImmediately()
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Forever CraftValue", 0.2, 0.8, 1)
         GameTooltip:AddLine("Clic gauche : ouvrir/fermer", 1, 1, 1)
         GameTooltip:AddLine("Clic droit : actualiser le classement", 1, 1, 1)
         GameTooltip:Show()
     end)
+
     button:SetScript("OnLeave", function()
         GameTooltip:Hide()
-        ScheduleHoverCheck()
+        FadeButtonOut()
     end)
 
     button:SetScript("OnClick", function(_, mouseButton)
@@ -129,45 +120,52 @@ local function CreateMinimapButton()
         end
     end)
 
-    button:SetScript("OnUpdate", function(self, elapsed)
-        if self.fadeTarget ~= nil then
-            self.fadeElapsed = self.fadeElapsed + elapsed
-            local progress = math.min(self.fadeElapsed / FADE_DURATION, 1)
-            local eased = 1 - (1 - progress) * (1 - progress)
-            local alpha = self.fadeStart + (self.fadeTarget - self.fadeStart) * eased
-            self:SetAlpha(alpha)
-            if progress >= 1 then
-                self.fadeTarget = nil
-                if alpha <= 0 then self:Hide() end
-            end
-        end
-
+    button:SetScript("OnUpdate", function(self)
         if self.isDragging then
             local mx, my = Minimap:GetCenter()
             local scale = Minimap:GetEffectiveScale()
             local cx, cy = GetCursorPosition()
             cx, cy = cx / scale, cy / scale
-            local angle = math.atan2(cy - my, cx - mx)
-            FLM.DB.minimap.angle = math.deg(angle)
+            FLM.DB.minimap.angle = math.deg(math.atan2(cy - my, cx - mx)) % 360
             UpdatePosition()
         end
     end)
 
     button:SetScript("OnDragStart", function(self)
+        self.fadeOut:Stop()
+        self:SetAlpha(1)
+        self:LockHighlight()
         self.isDragging = true
-        FadeIn()
-    end)
-    button:SetScript("OnDragStop", function(self)
-        self.isDragging = false
-        ScheduleHoverCheck()
     end)
 
-    if Minimap.HookScript then
-        Minimap:HookScript("OnEnter", function()
-            if FLM.DB and not FLM.DB.minimap.hide then FadeIn() end
+    button:SetScript("OnDragStop", function(self)
+        self:SetScript("OnUpdate", nil)
+        self.isDragging = false
+        self:UnlockHighlight()
+        FadeButtonOut()
+        self:SetScript("OnUpdate", function(frame)
+            if frame.isDragging then
+                local mx, my = Minimap:GetCenter()
+                local scale = Minimap:GetEffectiveScale()
+                local cx, cy = GetCursorPosition()
+                cx, cy = cx / scale, cy / scale
+                FLM.DB.minimap.angle = math.deg(math.atan2(cy - my, cx - mx)) % 360
+                UpdatePosition()
+            end
         end)
-        Minimap:HookScript("OnLeave", ScheduleHoverCheck)
-    end
+    end)
+
+    Minimap:HookScript("OnEnter", function()
+        if button and not (FLM.DB and FLM.DB.minimap.hide) then
+            ShowButtonImmediately()
+        end
+    end)
+
+    Minimap:HookScript("OnLeave", function()
+        if button and not (FLM.DB and FLM.DB.minimap.hide) and not button.isDragging then
+            FadeButtonOut()
+        end
+    end)
 
     UpdatePosition()
     UpdateVisibility()
