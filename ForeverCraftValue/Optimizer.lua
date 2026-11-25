@@ -92,13 +92,29 @@ function FLM:BuildRelevantItemIDs()
         end
     end
 
+    -- Toutes les recettes importées servent de racines, quel que soit l'onglet actif.
+    local rootRecipes, seenRecipes = {}, {}
+    for _, profession in pairs(professions) do
+        for _, recipe in ipairs((profession and profession.recipes) or {}) do
+            local key = tostring(recipe.recipeID or recipe.outputItemID or recipe.name)
+            if not seenRecipes[key] then
+                seenRecipes[key] = true
+                rootRecipes[#rootRecipes + 1] = recipe
+            end
+        end
+    end
     for _, recipe in ipairs(activeRecipes) do
+        local key = tostring(recipe.recipeID or recipe.outputItemID or recipe.name)
+        if not seenRecipes[key] then
+            seenRecipes[key] = true
+            rootRecipes[#rootRecipes + 1] = recipe
+        end
+    end
+    for _, recipe in ipairs(rootRecipes) do
         AddItem(recipe.outputItemID)
         for _, reagent in ipairs(recipe.reagents or {}) do
             local choices = reagent.choices or { reagent.itemID }
-            for _, choiceID in ipairs(choices) do
-                AddItem(choiceID)
-            end
+            for _, choiceID in ipairs(choices) do AddItem(choiceID) end
         end
     end
 
