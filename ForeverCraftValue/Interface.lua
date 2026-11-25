@@ -224,9 +224,11 @@ function FLM:ShowMerchantCollector()
         return (a.lastVisit or 0) > (b.lastVisit or 0)
     end)
 
+    local priceCount = 0
+    for _ in pairs((self.DB and self.DB.merchantPrices) or {}) do priceCount = priceCount + 1 end
     merchantCollectorWindow.summary:SetText(string.format(
         "%d marchands différents | %d visites | %d prix PNJ enregistrés",
-        #entries, totalVisits, CountEntries(self.DB and self.DB.merchantPrices)
+        #entries, totalVisits, priceCount
     ))
     for index, visit in ipairs(entries) do
         if not merchantCollectorWindow.lines[index] then
@@ -372,10 +374,6 @@ function FLM:ShowWindow()
             FLM:StartAuctionScan()
         end)
         window.scanButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
-        window.merchantButton = MakeButton(window, "Visites PNJ", 100, function()
-            FLM:ShowMerchantCollector()
-        end)
-        window.merchantButton:SetPoint("LEFT", window.scanButton, "RIGHT", 8, 0)
         window.durationLabel = MakeFont(window, 11, "Durée :")
         window.durationLabel:SetPoint("LEFT", window.scanButton, "RIGHT", 14, 0)
         window.durationButtons = {}
@@ -391,6 +389,10 @@ function FLM:ShowWindow()
             end
             window.durationButtons[hours] = button
         end
+        window.merchantButton = MakeButton(window, "Visites PNJ", 100, function()
+            FLM:ShowMerchantCollector()
+        end)
+        window.merchantButton:SetPoint("LEFT", window.durationButtons[24], "RIGHT", 10, 0)
 
         window.searchLabel = MakeFont(window, 11, "Rechercher :")
         window.searchLabel:SetPoint("TOPLEFT", 16, -120)
