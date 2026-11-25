@@ -24,8 +24,10 @@ Mode d'emploi
 2. Cliquer sur « Importer recettes » pour importer les recettes apprises de ce métier.
 3. Recommencer pour chaque métier que l'on souhaite analyser.
 4. Utiliser les onglets ou le sélecteur « Métier » pour afficher les recettes d'un métier importé.
-5. Ouvrir l'hôtel des ventes et lancer « Scan ciblé » pour rechercher les objets utiles aux recettes importées.
-6. Consulter les résultats : coûts des matériaux, prix de vente brut et net, commission, dépôt, bénéfice et marge.
+5. Ouvrir « Visites PNJ » dans la fenêtre de l'addon pour suivre la collecte des marchands.
+6. Visiter les marchands PNJ et ouvrir leur fenêtre : les prix en or sont collectés automatiquement. Chaque marchand rencontré est ajouté à l'historique.
+7. Ouvrir l'hôtel des ventes et lancer « Scan ciblé » pour rechercher les objets utiles aux recettes importées.
+8. Consulter les résultats : coûts des matériaux, prix de vente brut et net, commission, dépôt, bénéfice et marge.
 7. Relancer le scan après une évolution des prix du marché.
 
 Fonctionnement des scans
@@ -34,7 +36,7 @@ Fonctionnement des scans
 - Les recherches sont espacées pour limiter le rythme des requêtes ; les recherches qui n'aboutissent pas dans le délai prévu sont comptabilisées comme terminées.
 - Le scan complet, lorsqu'il est disponible dans l'interface, sert à actualiser les prix de l'ensemble des objets renvoyés par l'hôtel des ventes.
 - Les prix enregistrés sont partagés entre les métiers.
-- À l'ouverture ou à la mise à jour d'un marchand, l'addon mémorise automatiquement les prix des articles vendus contre de l'or. Les prix à monnaie spéciale ne sont pas pris en compte.
+- À l'ouverture ou à la mise à jour d'un marchand, l'addon mémorise automatiquement les prix des articles vendus contre de l'or. Les prix à monnaie spéciale ne sont pas pris en compte. L'onglet « Visites PNJ » conserve l'historique des marchands rencontrés, leur zone et le nombre de visites.
 
 Calculs
 - Pour chaque réactif, l'optimiseur compare les choix de composants disponibles et retient le coût connu le plus bas entre l'hôtel des ventes, les marchands et la fabrication via les métiers importés.
