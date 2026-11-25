@@ -36,6 +36,7 @@ function FLM:CaptureMerchantPrices(isNewVisit)
     self.DB.merchantVisits = self.DB.merchantVisits or {}
 
     local captured, seenItems, changed = 0, 0, false
+    local resolvedItems, eligibleItems = 0, 0
     local itemCount = (GetMerchantNumItems and GetMerchantItemInfo) and (GetMerchantNumItems() or 0) or 0
     -- Le compteur de visite reflète les emplacements affichés, même si le client
     -- n'a pas encore fourni les liens d'objets.
@@ -43,10 +44,12 @@ function FLM:CaptureMerchantPrices(isNewVisit)
     for index = 1, itemCount do
         local _, _, price, stackCount, _, isPurchasable, _, extendedCost, currencyID = GetMerchantItemInfo(index)
         local itemID = ResolveMerchantItemID(index)
+        if itemID then resolvedItems = resolvedItems + 1 end
         price = tonumber(price)
         stackCount = math.max(1, tonumber(stackCount) or 1)
         if itemID and price and price > 0 and isPurchasable ~= false
             and not extendedCost and (not currencyID or currencyID == 0) then
+            eligibleItems = eligibleItems + 1
             local unitPrice = math.floor(price / stackCount)
             if unitPrice > 0 then
                 if self.DB.merchantPrices[itemID] ~= unitPrice then changed = true end
@@ -86,7 +89,7 @@ function FLM:CaptureMerchantPrices(isNewVisit)
         if self.RefreshMerchantCollector then self:RefreshMerchantCollector() end
     end
     if changed then self:Print(string.format("Prix marchand actualisés (%d article(s)).", captured)) end
-    return captured
+    return captured, itemCount, resolvedItems, eligibleItems
 end
 
 local merchantFrame = CreateFrame("Frame")
@@ -94,10 +97,15 @@ merchantFrame:RegisterEvent("MERCHANT_SHOW")
 merchantFrame:RegisterEvent("MERCHANT_UPDATE")
 merchantFrame:SetScript("OnEvent", function(_, event)
     -- Enregistre la visite, puis relit le stock après le chargement asynchrone de l'interface.
-    FLM:CaptureMerchantPrices(event == "MERCHANT_SHOW")
-    if event == "MERCHANT_SHOW" and C_Timer and C_Timer.After then
-        C_Timer.After(0.25, function() FLM:CaptureMerchantPrices(false) end)
-        C_Timer.After(0.8, function() FLM:CaptureMerchantPrices(false) end)
-        C_Timer.After(1.5, function() FLM:CaptureMerchantPrices(false) end)
+    local captured, count, resolved, eligible = FLM:CaptureMerchantPrices(event == "MERCHANT_SHOW")
+    if event == "MERCHANT_SHOW" then
+        FLM:Print(string.format("Marchand détecté : %d article(s) affiché(s), %d identifiant(s) récupéré(s), %d prix enregistré(s).", count or 0, resolved or 0, captured or 0))
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.5, function() FLM:CaptureMerchantPrices(false) end)
+            C_Timer.After(1.5, function()
+                local saved, total, ids, valid = FLM:CaptureMerchantPrices(false)
+                FLM:Print(string.format("Diagnostic marchand : stock=%d, IDs=%d, articles achetables en or=%d, prix sauvegardés=%d.", total or 0, ids or 0, valid or 0, saved or 0))
+            end)
+        end
     end
 end)
