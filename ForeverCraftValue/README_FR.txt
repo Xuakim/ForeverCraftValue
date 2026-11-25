@@ -1,4 +1,4 @@
-FOREVER CRAFTVALUE 1.0.3
+FOREVER CRAFTVALUE 1.1.2
 =======================
 
 Présentation
@@ -24,9 +24,7 @@ Mode d'emploi
 2. Cliquer sur « Importer recettes » pour importer les recettes apprises de ce métier.
 3. Recommencer pour chaque métier que l'on souhaite analyser.
 4. Utiliser les onglets ou le sélecteur « Métier » pour afficher les recettes d'un métier importé.
-5. Ouvrir « Visites PNJ » dans la fenêtre de l'addon pour suivre la collecte des marchands.
-6. Visiter les marchands PNJ et ouvrir leur fenêtre : les prix en or sont collectés automatiquement. Chaque marchand rencontré est ajouté à l'historique.
-7. Ouvrir l'hôtel des ventes et lancer « Scan ciblé » pour rechercher les objets utiles aux recettes importées.
+5. Ouvrir l'hôtel des ventes et lancer « Scan ciblé » pour rechercher les objets utiles aux recettes importées.
 8. Consulter les résultats : coûts des matériaux, prix de vente brut et net, commission, dépôt, bénéfice et marge.
 7. Relancer le scan après une évolution des prix du marché.
 
@@ -36,11 +34,9 @@ Fonctionnement des scans
 - Les recherches sont espacées pour limiter le rythme des requêtes ; les recherches qui n'aboutissent pas dans le délai prévu sont comptabilisées comme terminées.
 - Le scan complet, lorsqu'il est disponible dans l'interface, sert à actualiser les prix de l'ensemble des objets renvoyés par l'hôtel des ventes.
 - Les prix enregistrés sont partagés entre les métiers.
-- À l'ouverture ou à la mise à jour d'un marchand, l'addon mémorise automatiquement les prix des articles vendus contre de l'or. Les prix à monnaie spéciale ne sont pas pris en compte. L'onglet « Visites PNJ » conserve l'historique des marchands rencontrés, leur zone et le nombre de visites.
 
 Calculs
-- Pour chaque réactif, l'optimiseur compare les choix de composants disponibles et retient le coût connu le plus bas entre l'hôtel des ventes, les marchands et la fabrication via les métiers importés.
-- Les composants achetés à un marchand (par exemple les bobines de fil) sont donc intégrés au coût de fabrication dès que leur marchand a été visité.
+- Pour chaque réactif, l'optimiseur compare les choix de composants disponibles et retient le coût connu le plus bas entre l'hôtel des ventes et la fabrication via les métiers importés.
 - Lorsqu'un composant peut être fabriqué avec une recette importée, son coût de fabrication peut être comparé à son prix d'achat à l'hôtel des ventes.
 - Le prix de vente net tient compte de la commission de l'hôtel des ventes configurée.
 - Le dépôt est estimé selon la durée d'annonce configurée et le prix vendeur de l'objet lorsque cette information est disponible.
@@ -60,8 +56,8 @@ Limites
 - Le scan ciblé dépend des API de recherche de l'hôtel des ventes du client. Les résultats absents ou les recherches expirées ne fournissent pas de prix.
 - Le dépôt affiché est une estimation et peut varier selon les règles du serveur et les caractéristiques de l'objet.
 
-Version 1.0.3
-- Ajout d'un suivi des visites de marchands PNJ et d'une fenêtre de collecte indiquant les marchands rencontrés, les visites et les prix enregistrés.
+Version 1.1.2
+- Suppression de la collecte des marchands PNJ ; comparaison limitée à l'HDV et à la fabrication.
 
 Version 1.0.2
 - Affichage au clic sur une recette du détail des composants, quantités, prix unitaires, coûts totaux et provenance (marchand, HDV ou fabrication).
