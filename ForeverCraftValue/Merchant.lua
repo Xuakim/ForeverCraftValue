@@ -1,8 +1,15 @@
 local ADDON, FLM = ...
 
 local function GetMerchantItemID(index)
-    if not GetMerchantItemLink then return nil end
-    local link = GetMerchantItemLink(index)
+    -- Certains clients exposent directement l'ID, même quand le lien n'est
+    -- pas encore disponible.
+    if GetMerchantItemID then
+        local itemID = GetMerchantItemID(index)
+        if itemID then return tonumber(itemID) end
+    end
+
+    local link
+    if GetMerchantItemLink then link = GetMerchantItemLink(index) end
     if not link then return nil end
 
     if GetItemInfoInstant then
@@ -29,12 +36,13 @@ function FLM:CaptureMerchantPrices(isNewVisit)
     self.DB.merchantVisits = self.DB.merchantVisits or {}
 
     local captured, seenItems, changed = 0, 0, false
-    local itemCount = (GetMerchantNumItems and GetMerchantItemInfo) and GetMerchantNumItems() or 0
+    local itemCount = (GetMerchantNumItems and GetMerchantItemInfo) and (GetMerchantNumItems() or 0) or 0
+    -- Le compteur de visite reflète les emplacements affichés, même si le client
+    -- n'a pas encore fourni les liens d'objets.
+    seenItems = itemCount
     for index = 1, itemCount do
         local _, _, price, stackCount, _, isPurchasable, _, extendedCost, currencyID = GetMerchantItemInfo(index)
         local itemID = GetMerchantItemID(index)
-        if itemID then seenItems = seenItems + 1 end
-
         price = tonumber(price)
         stackCount = math.max(1, tonumber(stackCount) or 1)
         if itemID and price and price > 0 and isPurchasable ~= false
@@ -66,8 +74,8 @@ function FLM:CaptureMerchantPrices(isNewVisit)
         visitChanged = true
     end
 
-    -- Le nombre d'articles vus est le nombre de liens d'objets réellement chargés,
-    -- pas seulement le nombre d'articles achetables contre de l'or.
+    -- Le nombre d'articles vus correspond au stock affiché par le marchand,
+    -- pas uniquement aux objets dont le lien est déjà chargé.
     if visit and seenItems > (tonumber(visit.items) or 0) then
         visit.items = seenItems
         visitChanged = true
