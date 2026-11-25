@@ -3,15 +3,16 @@ local ADDON, FLM = ...
 local BUTTON_NAME = "ForeverCraftValueMinimapButton"
 local ICON = "Interface\\Icons\\INV_Misc_ArmorKit_17"
 local button
-local HOVER_MARGIN = 28
-local FADE_DURATION = 0.22
+local HOVER_MARGIN = 32
+local HOVER_LEAVE_DELAY = 0.45
+local FADE_DURATION = 0.28
 
 local function UpdatePosition()
     if not button or not FLM.DB then return end
     local angle = math.rad(tonumber(FLM.DB.minimap.angle) or 220)
 
     -- Keep the button outside the minimap's masked area and its border.
-    local radius = (Minimap:GetWidth() / 2) + 12
+    local radius = (Minimap:GetWidth() / 2) + 8
     local x = math.cos(angle) * radius
     local y = math.sin(angle) * radius
 
@@ -62,7 +63,7 @@ end
 
 local function ScheduleHoverCheck()
     if C_Timer and C_Timer.After then
-        C_Timer.After(0.15, UpdateHoverVisibility)
+        C_Timer.After(HOVER_LEAVE_DELAY, UpdateHoverVisibility)
     else
         UpdateHoverVisibility()
     end
