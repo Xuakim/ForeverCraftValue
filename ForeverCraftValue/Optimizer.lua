@@ -1,59 +1,20 @@
 local ADDON, FLM = ...
 
-local function BestItemCost(itemID, prices, recipesByOutput, visiting)
-    local best = prices[itemID]
-    local alternatives = recipesByOutput[itemID]
-
-    if alternatives and not visiting[itemID] then
-        visiting[itemID] = true
-
-        for _, recipe in ipairs(alternatives) do
-            local cost, valid = 0, true
-
-            for _, reagent in ipairs(recipe.reagents or {}) do
-                local choices = reagent.choices or { reagent.itemID }
-                local bestChoice
-                for _, choiceID in ipairs(choices) do
-                    local choiceCost = BestItemCost(choiceID, prices, recipesByOutput, visiting)
-                    if choiceCost and (not bestChoice or choiceCost < bestChoice) then
-                        bestChoice = choiceCost
-                    end
-                end
-
-                if not bestChoice then
-                    valid = false
-                    break
-                end
-                cost = cost + bestChoice * (tonumber(reagent.count) or 0)
-            end
-
-            if valid then
-                local outputCount = math.max(1, tonumber(recipe.outputCount) or 1)
-                local unitCost = cost / outputCount
-                if not best or unitCost < best then best = unitCost end
-            end
-        end
-
-        visiting[itemID] = nil
-    end
-
-    return best
-end
-
--- Retourne le coût optimal et explique d'où vient le composant.
-local function BestItemCostInfo(itemID, prices, recipesByOutput, visiting)
+-- Compare les trois possibilités pour un composant : achat HDV, achat marchand
+-- ou fabrication via n'importe quelle recette importée.
+local function BestItemCostInfo(itemID, recipesByOutput, visiting)
     itemID = tonumber(itemID)
     if not itemID then return nil, "Prix inconnu" end
 
-    local best = prices[itemID]
-    local source = "Hôtel des ventes"
     local ahPrice = tonumber(FLM.DB.prices and FLM.DB.prices[itemID])
     local merchantPrice = tonumber(FLM.DB.merchantPrices and FLM.DB.merchantPrices[itemID])
+    local best, source
 
-    if merchantPrice and merchantPrice > 0 and (not ahPrice or merchantPrice <= ahPrice) then
-        source = "Marchand PNJ"
-    elseif not best then
-        source = "Prix inconnu"
+    if ahPrice and ahPrice > 0 then
+        best, source = ahPrice, "Hôtel des ventes"
+    end
+    if merchantPrice and merchantPrice > 0 and (not best or merchantPrice < best) then
+        best, source = merchantPrice, "Marchand PNJ"
     end
 
     local alternatives = recipesByOutput[itemID]
@@ -65,10 +26,15 @@ local function BestItemCostInfo(itemID, prices, recipesByOutput, visiting)
                 local choices = reagent.choices or { reagent.itemID }
                 local cheapest
                 for _, choiceID in ipairs(choices) do
-                    local choiceCost = BestItemCost(choiceID, prices, recipesByOutput, visiting)
-                    if choiceCost and (not cheapest or choiceCost < cheapest) then cheapest = choiceCost end
+                    local choiceCost = BestItemCostInfo(choiceID, recipesByOutput, visiting)
+                    if choiceCost and (not cheapest or choiceCost < cheapest) then
+                        cheapest = choiceCost
+                    end
                 end
-                if not cheapest then valid = false break end
+                if not cheapest then
+                    valid = false
+                    break
+                end
                 total = total + cheapest * (tonumber(reagent.count) or 0)
             end
             if valid then
@@ -82,7 +48,7 @@ local function BestItemCostInfo(itemID, prices, recipesByOutput, visiting)
         visiting[itemID] = nil
     end
 
-    return best, source
+    return best, source or "Prix inconnu"
 end
 
 -- Construit l'ensemble des objets utiles aux recettes du métier actif.
@@ -183,14 +149,29 @@ function FLM:CalculateDeals()
         end
     end
 
+    -- Les recettes de tous les métiers sont prises en compte pour les composants,
+    -- même si l'utilisateur consulte actuellement un autre métier.
     local recipesByOutput = {}
-    for _, recipe in ipairs(self.DB.recipes or {}) do
-        local id = tonumber(recipe.outputItemID)
-        if id then
-            recipesByOutput[id] = recipesByOutput[id] or {}
-            table.insert(recipesByOutput[id], recipe)
+    local function AddRecipes(recipes)
+        for _, recipe in ipairs(recipes or {}) do
+            local id = tonumber(recipe.outputItemID)
+            if id then
+                recipesByOutput[id] = recipesByOutput[id] or {}
+                local found = false
+                for _, existing in ipairs(recipesByOutput[id]) do
+                    if existing.recipeID == recipe.recipeID and existing.name == recipe.name then
+                        found = true
+                        break
+                    end
+                end
+                if not found then table.insert(recipesByOutput[id], recipe) end
+            end
         end
     end
+    for _, profession in pairs(self.DB.professions or {}) do
+        AddRecipes(profession and profession.recipes)
+    end
+    AddRecipes(self.DB.recipes)
 
     local results = {}
     for _, recipe in ipairs(self.DB.recipes or {}) do
@@ -203,7 +184,7 @@ function FLM:CalculateDeals()
             local choices = reagent.choices or { reagent.itemID }
             local bestChoice, bestChoiceID, bestSource
             for _, choiceID in ipairs(choices) do
-                local cost, source = BestItemCostInfo(choiceID, effectivePrices, recipesByOutput, { [outputID] = true })
+                local cost, source = BestItemCostInfo(choiceID, recipesByOutput, { [outputID] = true })
                 if cost and (not bestChoice or cost < bestChoice) then
                     bestChoice, bestChoiceID, bestSource = cost, tonumber(choiceID), source
                 end
