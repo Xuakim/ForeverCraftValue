@@ -1,6 +1,6 @@
 local ADDON, FLM = ...
 
-FLM.VERSION = "1.1.1"
+FLM.VERSION = "1.1.2"
 FLM.DB = nil
 
 local defaults = {
@@ -8,9 +8,6 @@ local defaults = {
     ahDuration = 8, -- Durée de mise en vente en heures
     prices = {},       -- [itemID] = observed reference unit buyout (copper)
     priceUpdated = {}, -- [itemID] = timestamp of latest auction observation
-    merchantPrices = {}, -- [itemID] = merchant unit price in copper
-    merchantPriceUpdated = {}, -- [itemID] = timestamp of latest merchant observation
-    merchantVisits = {}, -- [name|zone] = merchant visit history
     recipes = {},      -- active profession recipes
     professions = {},  -- [professionName] = { recipes = {}, lastImport = timestamp }
     activeProfession = nil,
@@ -104,7 +101,6 @@ local function HandleSlash(msg)
         FLM:Print("/fcv : ouvrir l'interface (/flm reste compatible)")
         FLM:Print("Ouvre la fenêtre du métier souhaité puis clique sur « Importer recettes ».")
         FLM:Print("À l'hôtel des ventes, clique sur « Scanner l'HDV ».")
-        FLM:Print("Visite les marchands PNJ : leurs prix sont collectés automatiquement. Clique sur « Visites PNJ » pour suivre la collecte.")
         FLM:Print("/flm price <itemID> <cuivre> : prix manuel de test")
     elseif cmd == "minimap" then
         if FLM.ToggleMinimapButton then FLM:ToggleMinimapButton() end
@@ -132,6 +128,9 @@ frame:SetScript("OnEvent", function(_, event, name)
         ForeverLeatherMasterDB = ForeverLeatherMasterDB or {}
         CopyDefaults(ForeverLeatherMasterDB, defaults)
         FLM.DB = ForeverLeatherMasterDB
+        FLM.DB.merchantPrices = nil
+        FLM.DB.merchantPriceUpdated = nil
+        FLM.DB.merchantVisits = nil
         FLM:InitializeProfessionData()
         FLM:Print("v" .. FLM.VERSION .. " chargé. Tape /fcv.")
     end
