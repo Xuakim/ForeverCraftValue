@@ -38,7 +38,7 @@ function FLM:UpdatePriceFromListings(itemID, unitPrices)
     end
 
     -- Un point au premier relevé ou si le prix varie d'au moins 1 %.
-    local addPoint = not previous or previous <= 0
+    local addPoint = #history == 0 or not previous or previous <= 0
     if not addPoint then
         addPoint = math.abs(reference - previous) / previous >= 0.01
     end
