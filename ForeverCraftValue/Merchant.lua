@@ -26,16 +26,17 @@ function FLM:CaptureMerchantPrices(isNewVisit)
 
     self.DB.merchantPrices = self.DB.merchantPrices or {}
     self.DB.merchantPriceUpdated = self.DB.merchantPriceUpdated or {}
-    local captured, changed = 0, false
+    self.DB.merchantVisits = self.DB.merchantVisits or {}
 
+    local captured, seenItems, changed = 0, 0, false
     local itemCount = (GetMerchantNumItems and GetMerchantItemInfo) and GetMerchantNumItems() or 0
     for index = 1, itemCount do
         local _, _, price, stackCount, _, isPurchasable, _, extendedCost, currencyID = GetMerchantItemInfo(index)
+        local itemID = GetMerchantItemID(index)
+        if itemID then seenItems = seenItems + 1 end
+
         price = tonumber(price)
         stackCount = math.max(1, tonumber(stackCount) or 1)
-        local itemID = GetMerchantItemID(index)
-
-        -- Ne retenir que les articles achetables contre de l'or.
         if itemID and price and price > 0 and isPurchasable ~= false
             and not extendedCost and (not currencyID or currencyID == 0) then
             local unitPrice = math.floor(price / stackCount)
@@ -48,11 +49,12 @@ function FLM:CaptureMerchantPrices(isNewVisit)
         end
     end
 
+    local name, zone = GetCurrentMerchantIdentity()
+    local key = string.lower(name .. "|" .. zone)
+    local visit = self.DB.merchantVisits[key]
+    local visitChanged = false
+
     if isNewVisit then
-        self.DB.merchantVisits = self.DB.merchantVisits or {}
-        local name, zone = GetCurrentMerchantIdentity()
-        local key = string.lower(name .. "|" .. zone)
-        local visit = self.DB.merchantVisits[key]
         local firstVisit = not visit
         if not visit then
             visit = { name = name, zone = zone, firstVisit = time(), visits = 0, items = 0 }
@@ -60,11 +62,18 @@ function FLM:CaptureMerchantPrices(isNewVisit)
         end
         visit.visits = (tonumber(visit.visits) or 0) + 1
         visit.lastVisit = time()
-        visit.items = math.max(tonumber(visit.items) or 0, captured)
         if firstVisit then self:Print("Nouveau marchand recensé : " .. name .. " (" .. zone .. ").") end
-        self:Refresh()
-        if self.RefreshMerchantCollector then self:RefreshMerchantCollector() end
-    elseif changed then
+        visitChanged = true
+    end
+
+    -- Le nombre d'articles vus est le nombre de liens d'objets réellement chargés,
+    -- pas seulement le nombre d'articles achetables contre de l'or.
+    if visit and seenItems > (tonumber(visit.items) or 0) then
+        visit.items = seenItems
+        visitChanged = true
+    end
+
+    if changed or visitChanged then
         self:Refresh()
         if self.RefreshMerchantCollector then self:RefreshMerchantCollector() end
     end
@@ -76,7 +85,11 @@ local merchantFrame = CreateFrame("Frame")
 merchantFrame:RegisterEvent("MERCHANT_SHOW")
 merchantFrame:RegisterEvent("MERCHANT_UPDATE")
 merchantFrame:SetScript("OnEvent", function(_, event)
-    -- MERCHANT_SHOW peut arriver avant que les lignes du marchand soient prêtes :
-    -- on enregistre immédiatement la visite, puis MERCHANT_UPDATE complète les prix.
+    -- Enregistre la visite, puis relit le stock après le chargement asynchrone de l'interface.
     FLM:CaptureMerchantPrices(event == "MERCHANT_SHOW")
+    if event == "MERCHANT_SHOW" and C_Timer and C_Timer.After then
+        C_Timer.After(0.25, function() FLM:CaptureMerchantPrices(false) end)
+        C_Timer.After(0.8, function() FLM:CaptureMerchantPrices(false) end)
+        C_Timer.After(1.5, function() FLM:CaptureMerchantPrices(false) end)
+    end
 end)
