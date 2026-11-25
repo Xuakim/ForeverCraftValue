@@ -462,6 +462,7 @@ function FLM:RefreshWindow()
 
     local recipeCount = #(self.DB.recipes or {})
     local priceCount = CountEntries(self.DB.prices)
+    local merchantPriceCount = CountEntries(self.DB.merchantPrices)
     local scanText = self.DB.lastScan and self.DB.lastScan > 0
         and (date("%d/%m %H:%M", self.DB.lastScan) .. " (" ..
             (self.DB.lastScanMode == "full" and "complet" or "ciblé") .. ")") or "jamais"
@@ -470,8 +471,8 @@ function FLM:RefreshWindow()
         button:SetEnabled(hours ~= duration)
     end
     window.status:SetText(string.format(
-        "%s | %d recettes apprises | %d objets avec prix | %d recettes calculables | Dernier scan : %s | Prix consultés : MAJ auto | Commission : %.0f%% | Durée : %dh",
-        self.DB.activeProfession or "Aucun métier sélectionné", recipeCount, priceCount, #results, scanText,
+        "%s | %d recettes | %d prix HDV | %d prix PNJ | %d recettes calculables | Dernier scan : %s | Commission : %.0f%% | Durée : %dh",
+        self.DB.activeProfession or "Aucun métier sélectionné", recipeCount, priceCount, merchantPriceCount, #results, scanText,
         (tonumber(self.DB.ahCut) or 0.05) * 100, duration
     ))
 end
