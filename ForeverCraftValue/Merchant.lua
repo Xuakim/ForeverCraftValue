@@ -22,13 +22,14 @@ local function GetCurrentMerchantIdentity()
 end
 
 function FLM:CaptureMerchantPrices(isNewVisit)
-    if not self.DB or not GetMerchantNumItems or not GetMerchantItemInfo then return 0 end
+    if not self.DB then return 0 end
 
     self.DB.merchantPrices = self.DB.merchantPrices or {}
     self.DB.merchantPriceUpdated = self.DB.merchantPriceUpdated or {}
     local captured, changed = 0, false
 
-    for index = 1, GetMerchantNumItems() do
+    local itemCount = (GetMerchantNumItems and GetMerchantItemInfo) and GetMerchantNumItems() or 0
+    for index = 1, itemCount do
         local _, _, price, stackCount, _, isPurchasable, _, extendedCost, currencyID = GetMerchantItemInfo(index)
         price = tonumber(price)
         stackCount = math.max(1, tonumber(stackCount) or 1)
@@ -62,8 +63,10 @@ function FLM:CaptureMerchantPrices(isNewVisit)
         visit.items = math.max(tonumber(visit.items) or 0, captured)
         if firstVisit then self:Print("Nouveau marchand recensé : " .. name .. " (" .. zone .. ").") end
         self:Refresh()
+        if self.RefreshMerchantCollector then self:RefreshMerchantCollector() end
     elseif changed then
         self:Refresh()
+        if self.RefreshMerchantCollector then self:RefreshMerchantCollector() end
     end
     if changed then self:Print(string.format("Prix marchand actualisés (%d article(s)).", captured)) end
     return captured
@@ -73,5 +76,7 @@ local merchantFrame = CreateFrame("Frame")
 merchantFrame:RegisterEvent("MERCHANT_SHOW")
 merchantFrame:RegisterEvent("MERCHANT_UPDATE")
 merchantFrame:SetScript("OnEvent", function(_, event)
+    -- MERCHANT_SHOW peut arriver avant que les lignes du marchand soient prêtes :
+    -- on enregistre immédiatement la visite, puis MERCHANT_UPDATE complète les prix.
     FLM:CaptureMerchantPrices(event == "MERCHANT_SHOW")
 end)
