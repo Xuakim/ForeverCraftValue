@@ -1,20 +1,15 @@
 local ADDON, FLM = ...
 
--- Compare les trois possibilités pour un composant : achat HDV, achat marchand
--- ou fabrication via n'importe quelle recette importée.
+-- Compare le prix HDV et le coût de fabrication via les recettes importées.
 local function BestItemCostInfo(itemID, recipesByOutput, visiting)
     itemID = tonumber(itemID)
     if not itemID then return nil, "Prix inconnu" end
 
     local ahPrice = tonumber(FLM.DB.prices and FLM.DB.prices[itemID])
-    local merchantPrice = tonumber(FLM.DB.merchantPrices and FLM.DB.merchantPrices[itemID])
     local best, source
 
     if ahPrice and ahPrice > 0 then
         best, source = ahPrice, "Hôtel des ventes"
-    end
-    if merchantPrice and merchantPrice > 0 and (not best or merchantPrice < best) then
-        best, source = merchantPrice, "Marchand PNJ"
     end
 
     local alternatives = recipesByOutput[itemID]
