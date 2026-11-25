@@ -1,7 +1,7 @@
 local ADDON, FLM = ...
 
 local BUTTON_NAME = "ForeverCraftValueMinimapButton"
-local ICON = "Interface\\Icons\\INV_Misc_ArmorKit_17"
+local ICON = "Interface\\AddOns\\ForeverCraftValue\\ForeverCraftValueIcon.tga"
 local button
 
 -- Same positioning model as Questie's LibDBIcon: a small radius outside the minimap edge.
