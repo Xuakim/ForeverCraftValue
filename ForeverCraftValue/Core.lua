@@ -1,12 +1,13 @@
 local ADDON, FLM = ...
 
-FLM.VERSION = "1.1.2"
+FLM.VERSION = "1.1.4"
 FLM.DB = nil
 
 local defaults = {
     ahCut = 0.05, -- Commission faction WoW Forever
     ahDuration = 8, -- Durée de mise en vente en heures
     prices = {},       -- [itemID] = observed reference unit buyout (copper)
+    priceHistory = {}, -- [itemID] = { { time = timestamp, price = copper }, ... }
     priceUpdated = {}, -- [itemID] = timestamp of latest auction observation
     recipes = {},      -- active profession recipes
     professions = {},  -- [professionName] = { recipes = {}, lastImport = timestamp }
