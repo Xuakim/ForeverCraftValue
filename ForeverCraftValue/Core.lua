@@ -1,6 +1,6 @@
 local ADDON, FLM = ...
 
-FLM.VERSION = "1.0.8"
+FLM.VERSION = "1.0.9"
 FLM.DB = nil
 
 local defaults = {
