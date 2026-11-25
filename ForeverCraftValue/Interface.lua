@@ -270,8 +270,14 @@ local function ShowRecipeDetails(deal)
 
         detailWindow.summary = MakeFont(detailWindow, 11, "")
         detailWindow.summary:SetPoint("TOPLEFT", 16, -34)
-        detailWindow.summary:SetWidth(500)
+        detailWindow.summary:SetWidth(420)
         detailWindow.summary:SetJustifyH("LEFT")
+        detailWindow.outputHistoryButton = MakeButton(detailWindow, "Courbe objet", 88, function()
+            if detailWindow.outputItemID then
+                ShowPriceHistory(detailWindow.outputItemID, detailWindow.outputItemName, 90)
+            end
+        end)
+        detailWindow.outputHistoryButton:SetPoint("TOPRIGHT", detailWindow, "TOPRIGHT", -18, -32)
 
         detailWindow.scroll = CreateFrame("ScrollFrame", "FCVRecipeDetailsScroll", detailWindow, "UIPanelScrollFrameTemplate")
         detailWindow.scroll:SetPoint("TOPLEFT", 14, -62)
@@ -287,13 +293,17 @@ local function ShowRecipeDetails(deal)
     detailWindow.title:SetText(deal.name or "Détail des composants")
     detailWindow.summary:SetText("Coût total des composants : " ..
         (deal.materialCost and FLM:FormatMoneyIcons(deal.materialCost) or "incomplet"))
+    detailWindow.outputItemID = tonumber(deal.outputItemID)
+    detailWindow.outputItemName = deal.name or ("Objet " .. tostring(deal.outputItemID or ""))
+    detailWindow.outputHistoryButton:SetEnabled(detailWindow.outputItemID ~= nil)
+    detailWindow.outputHistoryButton:Show()
 
     local details = deal.materialDetails or {}
     for index, material in ipairs(details) do
         if not detailWindow.lines[index] then
             local line = MakeFont(detailWindow.child, 11, "", "GameFontHighlight")
             line:SetPoint("TOPLEFT", 4, -(index - 1) * 52)
-            line:SetWidth(390)
+            line:SetWidth(360)
             line:SetHeight(48)
             line:SetJustifyH("LEFT")
             line:SetJustifyV("MIDDLE")
@@ -304,7 +314,7 @@ local function ShowRecipeDetails(deal)
                     ShowPriceHistory(historyButton.material.itemID, historyButton.material.name, 90)
                 end
             end)
-            historyButton:SetPoint("RIGHT", detailWindow.child, "RIGHT", -4, -(index - 1) * 52 - 2)
+            historyButton:SetPoint("LEFT", line, "RIGHT", 8, 0)
             detailWindow.lines[index] = line
             detailWindow.lines[index].historyButton = historyButton
         end
