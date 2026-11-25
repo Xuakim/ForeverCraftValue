@@ -27,8 +27,39 @@ function FLM:UpdatePriceFromListings(itemID, unitPrices)
 
     self.DB.prices = self.DB.prices or {}
     self.DB.priceUpdated = self.DB.priceUpdated or {}
+    self.DB.priceHistory = self.DB.priceHistory or {}
+
+    local now = time()
+    local previous = tonumber(self.DB.prices[itemID])
+    local history = self.DB.priceHistory[itemID]
+    if type(history) ~= "table" then
+        history = {}
+        self.DB.priceHistory[itemID] = history
+    end
+
+    -- Un point au premier relevé ou si le prix varie d'au moins 1 %.
+    local addPoint = not previous or previous <= 0
+    if not addPoint then
+        addPoint = math.abs(reference - previous) / previous >= 0.01
+    end
+    if addPoint then
+        history[#history + 1] = { time = now, price = reference }
+    end
+
+    -- Conservation de 90 jours maximum et de 200 points par objet.
+    local cutoff = now - (90 * 24 * 60 * 60)
+    local kept = {}
+    for _, point in ipairs(history) do
+        local stamp, price = tonumber(point.time), tonumber(point.price)
+        if stamp and stamp >= cutoff and price and price > 0 then
+            kept[#kept + 1] = { time = stamp, price = math.floor(price) }
+        end
+    end
+    while #kept > 200 do table.remove(kept, 1) end
+    self.DB.priceHistory[itemID] = kept
+
     self.DB.prices[itemID] = reference
-    self.DB.priceUpdated[itemID] = time()
+    self.DB.priceUpdated[itemID] = now
     self:Refresh()
     return true
 end
