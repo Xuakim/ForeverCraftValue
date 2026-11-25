@@ -53,9 +53,10 @@ local function StartNextTargetedQuery()
     targetedPendingItemID = itemID
     targetedDeadline = GetTime() + TARGET_QUERY_TIMEOUT
     targetedNextQueryAt = GetTime() + TARGET_QUERY_INTERVAL
-    local ok, err = pcall(C_AuctionHouse.SendSearchQuery, { itemID = itemID }, {}, false, "")
-    if not ok then
-        FLM:Print("Recherche impossible pour l'objet " .. itemID .. " : " .. tostring(err))
+    local itemKey = C_AuctionHouse.MakeItemKey and C_AuctionHouse.MakeItemKey(itemID) or { itemID = itemID }
+    local ok, result = pcall(C_AuctionHouse.SendSearchQuery, itemKey, {}, false, "")
+    if not ok or result == false then
+        FLM:Print("Recherche impossible pour l'objet " .. itemID .. " : " .. tostring(result))
         targetedPendingItemID = nil
         targetedCompleted = targetedCompleted + 1
     end
