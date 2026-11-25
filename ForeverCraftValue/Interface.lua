@@ -6,28 +6,47 @@ local professionTabs = {}
 local sortDescending = true
 local ROW_HEIGHT = 32
 local PROFESSION_ICONS = {
-    {"travail du cuir", "Trade_LeatherWorking"}, {"cuir", "Trade_LeatherWorking"},
-    {"forge", "Trade_BlackSmithing"}, {"blacksmith", "Trade_BlackSmithing"},
-    {"ingénierie", "Trade_Engineering"}, {"ingenierie", "Trade_Engineering"}, {"engineering", "Trade_Engineering"},
-    {"couture", "Trade_Tailoring"}, {"tailoring", "Trade_Tailoring"},
-    {"alchimie", "Trade_Alchemy"}, {"alchemy", "Trade_Alchemy"},
-    {"enchantement", "Trade_Enchanting"}, {"enchanting", "Trade_Enchanting"},
-    {"herboristerie", "Trade_Herbalism"}, {"herborisme", "Trade_Herbalism"}, {"herbalism", "Trade_Herbalism"},
-    {"minage", "Trade_Mining"}, {"mining", "Trade_Mining"},
-    {"dépeçage", "Trade_Skinning"}, {"depecage", "Trade_Skinning"}, {"skinning", "Trade_Skinning"},
-    {"joaillerie", "Trade_Jewelcrafting"}, {"jewelcrafting", "Trade_Jewelcrafting"},
-    {"calligraphie", "Trade_Inscription"}, {"inscription", "Trade_Inscription"},
-    {"cuisine", "INV_Misc_Food_15"}, {"cooking", "INV_Misc_Food_15"},
-    {"pêche", "Trade_Fishing"}, {"peche", "Trade_Fishing"}, {"fishing", "Trade_Fishing"},
+    {"travail du cuir", "ui_profession_leatherworking"},
+    {"forge", "ui_profession_blacksmithing"},
+    {"ingénierie", "ui_profession_engineering"}, {"ingenierie", "ui_profession_engineering"},
+    {"couture", "ui_profession_tailoring"},
+    {"alchimie", "ui_profession_alchemy"},
+    {"enchantement", "ui_profession_enchanting"},
+    {"herboristerie", "ui_profession_herbalism"}, {"herborisme", "ui_profession_herbalism"},
+    {"minage", "ui_profession_mining"},
+    {"dépeçage", "ui_profession_skinning"}, {"depecage", "ui_profession_skinning"},
+    {"joaillerie", "ui_profession_jewelcrafting"},
+    {"calligraphie", "ui_profession_inscription"}, {"inscription", "ui_profession_inscription"},
+    {"cuisine", "ui_profession_cooking"},
+    {"pêche", "ui_profession_fishing"}, {"peche", "ui_profession_fishing"},
 }
 local function GetProfessionIcon(name)
+    -- Utiliser en priorité l'icône retournée par l'API du client pour le métier appris.
+    if GetProfessions and GetProfessionInfo then
+        local professionIndices = { GetProfessions() }
+        for _, index in ipairs(professionIndices) do
+            if index then
+                local professionName, icon = GetProfessionInfo(index)
+                if professionName and icon then
+                    local current = string.lower(tostring(name or ""))
+                    local learned = string.lower(tostring(professionName))
+                    if current == learned or string.find(current, learned, 1, true)
+                        or string.find(learned, current, 1, true) then
+                        return icon
+                    end
+                end
+            end
+        end
+    end
+
+    -- Fallback sur les textures UI Profession natives de WoW.
     local lower = string.lower(tostring(name or ""))
     for _, entry in ipairs(PROFESSION_ICONS) do
         if string.find(lower, entry[1], 1, true) then
-            return "Interface\\Icons\\" .. entry[2]
+            return "Interface\\\\Icons\\\\" .. entry[2]
         end
     end
-    return "Interface\\Icons\\INV_Misc_QuestionMark"
+    return "Interface\\\\Icons\\\\INV_Misc_QuestionMark"
 end
 
 local function MakeFont(parent, size, text, template)
