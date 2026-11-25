@@ -22,7 +22,7 @@ local function FadeIn()
     button.fadeOut:Stop()
     button:Show()
     button.fadeIn:Stop()
-    button:SetAlpha(button:GetAlpha())
+    button.fadeIn:GetAnimations():SetFromAlpha(button:GetAlpha())
     button.fadeIn:Play()
 end
 
@@ -30,6 +30,7 @@ local function FadeOut()
     if not button then return end
     button.fadeIn:Stop()
     button.fadeOut:Stop()
+    button.fadeOut:GetAnimations():SetFromAlpha(button:GetAlpha())
     button.fadeOut:Play()
 end
 
