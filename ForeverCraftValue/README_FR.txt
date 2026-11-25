@@ -1,4 +1,4 @@
-FOREVER CRAFTVALUE 1.0.2
+FOREVER CRAFTVALUE 1.0.3
 =======================
 
 Présentation
@@ -59,6 +59,9 @@ Limites
 - Les prix observés sont des instantanés du scan, pas une moyenne ni une garantie de prix de vente.
 - Le scan ciblé dépend des API de recherche de l'hôtel des ventes du client. Les résultats absents ou les recherches expirées ne fournissent pas de prix.
 - Le dépôt affiché est une estimation et peut varier selon les règles du serveur et les caractéristiques de l'objet.
+
+Version 1.0.3
+- Ajout d'un suivi des visites de marchands PNJ et d'une fenêtre de collecte indiquant les marchands rencontrés, les visites et les prix enregistrés.
 
 Version 1.0.2
 - Affichage au clic sur une recette du détail des composants, quantités, prix unitaires, coûts totaux et provenance (marchand, HDV ou fabrication).
