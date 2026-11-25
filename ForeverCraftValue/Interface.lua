@@ -4,6 +4,7 @@ local window
 local rows = {}
 local professionTabs = {}
 local sortDescending = true
+local progressionOnly = false
 local ROW_HEIGHT = 32
 local PROFESSION_ICONS = {
     {"travail du cuir", "ui_profession_leatherworking"},
@@ -494,6 +495,20 @@ function FLM:ShowWindow()
         end)
         window.clearSearchButton:SetPoint("LEFT", window.searchBox, "RIGHT", 6, 0)
 
+        window.progressionButton = MakeButton(window, "Progression : OFF", 126, function()
+            progressionOnly = not progressionOnly
+            window.progressionButton:SetText(progressionOnly and "Progression : ON" or "Progression : OFF")
+            FLM:RefreshWindow()
+        end)
+        window.progressionButton:SetPoint("LEFT", window.clearSearchButton, "RIGHT", 8, 0)
+        window.progressionButton:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText("Afficher uniquement les recettes qui peuvent encore donner un point de compétence.")
+            GameTooltip:AddLine("Les données sont actualisées lors de l'import des recettes.", 1, 0.82, 0.45, true)
+            GameTooltip:Show()
+        end)
+        window.progressionButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
         window.status = MakeFont(window, 10, "")
         window.status:SetPoint("BOTTOMLEFT", 16, 13)
         window.status:SetWidth(850)
@@ -639,6 +654,15 @@ function FLM:RefreshWindow()
         end
         results = filtered
     end
+    if progressionOnly then
+        local progressionResults = {}
+        for _, deal in ipairs(results) do
+            if deal.canSkillUp == true then
+                progressionResults[#progressionResults + 1] = deal
+            end
+        end
+        results = progressionResults
+    end
     SortResults(results)
 
     for i = 1, #results do
@@ -688,7 +712,9 @@ function FLM:RefreshWindow()
     window.scrollChild:SetHeight(math.max(1, #results * ROW_HEIGHT))
     window.scroll:SetVerticalScroll(0)
     window.empty:SetShown(#results == 0)
-    if #results == 0 and query ~= "" then
+    if #results == 0 and progressionOnly then
+        window.empty:SetText("Aucune recette ne peut actuellement faire gagner de point de compétence. Réimporte les recettes depuis la fenêtre du métier pour actualiser leur progression.")
+    elseif #results == 0 and query ~= "" then
         window.empty:SetText("Aucune recette ou aucun objet fabriqué ne correspond à « " .. query .. " ».")
     else
         window.empty:SetText("Aucune recette importée pour ce métier. Ouvre le métier en jeu puis clique sur « Importer recettes ».")
