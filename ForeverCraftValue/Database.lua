@@ -56,7 +56,7 @@ end
 -- Met à jour le prix d'un objet à partir des annonces réellement consultées.
 function FLM:UpdatePriceFromListings(itemID, unitPrices)
     itemID = tonumber(itemID)
-    if not itemID or itemID <= 0 or type(unitPrices) ~= "table" or #unitPrices < 2 then
+    if not itemID or itemID <= 0 or type(unitPrices) ~= "table" or #unitPrices < 1 then
         return false
     end
 
@@ -65,7 +65,7 @@ function FLM:UpdatePriceFromListings(itemID, unitPrices)
         price = tonumber(price)
         if price and price > 0 then valid[#valid + 1] = math.floor(price) end
     end
-    if #valid < 2 then return false end
+    if #valid < 1 then return false end
 
     local reference = GetMarketPrice(valid)
     if not reference or reference <= 0 then return false end
