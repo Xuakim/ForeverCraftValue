@@ -225,7 +225,7 @@ function FLM:ShowWindow()
         window.professionButton:SetPoint("TOPLEFT", 16, -58)
 
         window.scanButton = MakeButton(window, "Scan ciblé", 105, function()
-            FLM:StartAuctionScan("targeted")
+            FLM:StartAuctionScan()
         end)
         window.scanButton:SetPoint("LEFT", window.professionButton, "RIGHT", 8, 0)
         window.durationLabel = MakeFont(window, 11, "Durée :")
