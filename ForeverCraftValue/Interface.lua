@@ -5,6 +5,30 @@ local rows = {}
 local professionTabs = {}
 local sortDescending = true
 local ROW_HEIGHT = 32
+local PROFESSION_ICONS = {
+    {"travail du cuir", "Trade_LeatherWorking"}, {"cuir", "Trade_LeatherWorking"},
+    {"forge", "Trade_BlackSmithing"}, {"blacksmith", "Trade_BlackSmithing"},
+    {"ingénierie", "Trade_Engineering"}, {"ingenierie", "Trade_Engineering"}, {"engineering", "Trade_Engineering"},
+    {"couture", "Trade_Tailoring"}, {"tailoring", "Trade_Tailoring"},
+    {"alchimie", "Trade_Alchemy"}, {"alchemy", "Trade_Alchemy"},
+    {"enchantement", "Trade_Enchanting"}, {"enchanting", "Trade_Enchanting"},
+    {"herboristerie", "Trade_Herbalism"}, {"herborisme", "Trade_Herbalism"}, {"herbalism", "Trade_Herbalism"},
+    {"minage", "Trade_Mining"}, {"mining", "Trade_Mining"},
+    {"dépeçage", "Trade_Skinning"}, {"depecage", "Trade_Skinning"}, {"skinning", "Trade_Skinning"},
+    {"joaillerie", "Trade_Jewelcrafting"}, {"jewelcrafting", "Trade_Jewelcrafting"},
+    {"calligraphie", "Trade_Inscription"}, {"inscription", "Trade_Inscription"},
+    {"cuisine", "INV_Misc_Food_15"}, {"cooking", "INV_Misc_Food_15"},
+    {"pêche", "Trade_Fishing"}, {"peche", "Trade_Fishing"}, {"fishing", "Trade_Fishing"},
+}
+local function GetProfessionIcon(name)
+    local lower = string.lower(tostring(name or ""))
+    for _, entry in ipairs(PROFESSION_ICONS) do
+        if string.find(lower, entry[1], 1, true) then
+            return "Interface\\Icons\\" .. entry[2]
+        end
+    end
+    return "Interface\\Icons\\INV_Misc_QuestionMark"
+end
 
 local function MakeFont(parent, size, text, template)
     local fs = parent:CreateFontString(nil, "OVERLAY", template or "GameFontNormal")
@@ -119,7 +143,7 @@ end
 function FLM:ShowWindow()
     if not window then
         window = CreateFrame("Frame", "ForeverCraftValueFrame", UIParent, "BasicFrameTemplateWithInset")
-        window:SetSize(900, 500)
+        window:SetSize(950, 540)
         window:SetFrameStrata("DIALOG")
         window:SetToplevel(true)
         window:SetPoint("CENTER")
@@ -199,7 +223,7 @@ function FLM:ShowWindow()
 
         local header = CreateFrame("Frame", nil, window)
         header:SetPoint("TOPLEFT", 14, -150)
-        header:SetPoint("TOPRIGHT", -14, -150)
+        header:SetPoint("TOPRIGHT", -96, -150)
         header:SetHeight(20)
         local hName = MakeColumn(header, "RECETTE", 270, "LEFT")
         hName:SetPoint("LEFT", 7, 0)
@@ -228,11 +252,11 @@ function FLM:ShowWindow()
         separator:SetColorTexture(0.8, 0.65, 0.25, 0.65)
         separator:SetHeight(1)
         separator:SetPoint("TOPLEFT", 16, -170)
-        separator:SetPoint("TOPRIGHT", -16, -170)
+        separator:SetPoint("TOPRIGHT", -96, -170)
 
         window.scroll = CreateFrame("ScrollFrame", "FLMResultsScrollFrame", window, "UIPanelScrollFrameTemplate")
         window.scroll:SetPoint("TOPLEFT", 16, -175)
-        window.scroll:SetPoint("BOTTOMRIGHT", -30, 42)
+        window.scroll:SetPoint("BOTTOMRIGHT", -96, 42)
         window.scroll:SetClipsChildren(true)
         window.scrollChild = CreateFrame("Frame", nil, window.scroll)
         window.scrollChild:SetWidth(840)
@@ -252,23 +276,39 @@ end
 function FLM:RefreshWindow()
     if not window or not self.DB then return end
     local names = self:GetAvailableProfessions()
-    local totalWidth = 860
-    local tabWidth = #names > 0 and math.min(130, math.max(58, math.floor(totalWidth / #names))) or 90
     for i, name in ipairs(names) do
         local tabIndex = i
         if not professionTabs[tabIndex] then
-            professionTabs[tabIndex] = MakeButton(window, name, tabWidth, function()
+            local button = CreateFrame("Button", nil, window)
+            button:SetSize(36, 36)
+            button.icon = button:CreateTexture(nil, "ARTWORK")
+            button.icon:SetPoint("TOPLEFT", 3, -3)
+            button.icon:SetPoint("BOTTOMRIGHT", -3, 3)
+            button.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+            button.selection = button:CreateTexture(nil, "OVERLAY")
+            button.selection:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+            button.selection:SetBlendMode("ADD")
+            button.selection:SetAllPoints()
+            button:SetScript("OnClick", function()
                 local selectedName = professionTabs[tabIndex].professionName
                 if selectedName then FLM:SetActiveProfession(selectedName) end
             end)
+            button:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+                GameTooltip:SetText(self.professionName or "")
+                GameTooltip:AddLine("Afficher les recettes de ce métier", 1, 1, 1, true)
+                GameTooltip:Show()
+            end)
+            button:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            professionTabs[tabIndex] = button
         end
         local tab = professionTabs[i]
         tab.professionName = name
-        tab:SetText(name)
-        tab:SetWidth(tabWidth)
+        tab.icon:SetTexture(GetProfessionIcon(name))
         tab:ClearAllPoints()
-        tab:SetPoint("TOPLEFT", window, "TOPLEFT", 16 + (i - 1) * (tabWidth + 3), -88)
-        tab:SetEnabled(name ~= self.DB.activeProfession)
+        tab:SetPoint("TOPRIGHT", window, "TOPRIGHT", -9, -88 - (i - 1) * 39)
+        tab.selection:SetShown(name == self.DB.activeProfession)
         tab:Show()
     end
     for i = #names + 1, #professionTabs do professionTabs[i]:Hide() end
