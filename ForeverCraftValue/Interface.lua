@@ -106,7 +106,10 @@ end
 
 local function SortResults(results)
     table.sort(results, function(a, b)
-        local pa, pb = tonumber(a.profit) or 0, tonumber(b.profit) or 0
+        local pa, pb = tonumber(a.profit), tonumber(b.profit)
+        if pa == nil and pb == nil then return (a.name or "") < (b.name or "") end
+        if pa == nil then return false end
+        if pb == nil then return true end
         if pa == pb then return (a.name or "") < (b.name or "") end
         if sortDescending then return pa > pb end
         return pa < pb
@@ -293,9 +296,14 @@ function FLM:RefreshWindow()
         local deal = results[i]
         row.recipeID = deal.recipeID
         row.name:SetText(deal.name or ("Recette " .. tostring(deal.recipeID or "?")))
-        row.age:SetText("Prix de vente : " .. self:FormatPriceAge(deal.salePriceUpdated))
-        row.cost:SetText(self:FormatMoneyIcons(deal.materialCost))
-        row.sale:SetText(self:FormatMoneyIcons(deal.netSale))
+        if deal.pricesComplete then
+            row.age:SetText("Prix de vente : " .. self:FormatPriceAge(deal.salePriceUpdated))
+        else
+            local missing = (deal.missingMaterials or 0) + (deal.netSale and 0 or 1)
+            row.age:SetText("Prix manquants : " .. missing .. " élément(s)")
+        end
+        row.cost:SetText(deal.materialCost and self:FormatMoneyIcons(deal.materialCost) or "—")
+        row.sale:SetText(deal.netSale and self:FormatMoneyIcons(deal.netSale) or "—")
         row.deposit:SetText(deal.depositCost and self:FormatMoneyIcons(deal.depositCost) or "—")
         row.deposit:SetTextColor(0.95, 0.78, 0.35)
         row.deposit:SetScript("OnEnter", function(self)
@@ -306,14 +314,17 @@ function FLM:RefreshWindow()
             GameTooltip:Show()
         end)
         row.deposit:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        row.profit:SetText((deal.profit >= 0 and "+" or "-") .. self:FormatMoneyIcons(math.abs(deal.profit)))
-        row.margin:SetText(string.format("%.1f%%", deal.margin or 0))
-        if deal.profit >= 0 then
+        row.profit:SetText(deal.profit and ((deal.profit >= 0 and "+" or "-") .. self:FormatMoneyIcons(math.abs(deal.profit))) or "—")
+        row.margin:SetText(deal.margin and string.format("%.1f%%", deal.margin) or "—")
+        if deal.profit and deal.profit >= 0 then
             row.profit:SetTextColor(0.25, 1, 0.35)
             row.margin:SetTextColor(0.25, 1, 0.35)
-        else
+        elseif deal.profit then
             row.profit:SetTextColor(1, 0.35, 0.25)
             row.margin:SetTextColor(1, 0.35, 0.25)
+        else
+            row.profit:SetTextColor(0.7, 0.7, 0.7)
+            row.margin:SetTextColor(0.7, 0.7, 0.7)
         end
         row:Show()
     end
@@ -325,7 +336,7 @@ function FLM:RefreshWindow()
     if #results == 0 and query ~= "" then
         window.empty:SetText("Aucune recette ou aucun objet fabriqué ne correspond à « " .. query .. " ».")
     else
-        window.empty:SetText("Aucun résultat calculable pour le moment. Importe tes recettes et renseigne les prix via le scan HDV.")
+        window.empty:SetText("Aucune recette importée pour ce métier. Ouvre le métier en jeu puis clique sur « Importer recettes ».")
     end
 
     local recipeCount = #(self.DB.recipes or {})
