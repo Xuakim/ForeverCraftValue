@@ -3,13 +3,15 @@ local ADDON, FLM = ...
 local BUTTON_NAME = "ForeverCraftValueMinimapButton"
 local ICON = "Interface\\Icons\\INV_Misc_ArmorKit_17"
 local button
+local HOVER_MARGIN = 28
+local FADE_DURATION = 0.22
 
 local function UpdatePosition()
     if not button or not FLM.DB then return end
     local angle = math.rad(tonumber(FLM.DB.minimap.angle) or 220)
 
     -- Keep the button outside the minimap's masked area and its border.
-    local radius = (Minimap:GetWidth() / 2) + 18
+    local radius = (Minimap:GetWidth() / 2) + 12
     local x = math.cos(angle) * radius
     local y = math.sin(angle) * radius
 
@@ -17,40 +19,39 @@ local function UpdatePosition()
     button:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
 
-local function FadeIn()
+local function FadeTo(target)
     if not button then return end
-    button.fadeOut:Stop()
-    button:Show()
-    button.fadeIn:Stop()
-    button.fadeInAlpha:SetFromAlpha(button:GetAlpha())
-    button.fadeIn:Play()
+    if target > 0 then button:Show() end
+    button.fadeStart = button:GetAlpha()
+    button.fadeTarget = target
+    button.fadeElapsed = 0
+end
+
+local function FadeIn()
+    FadeTo(1)
 end
 
 local function FadeOut()
-    if not button then return end
-    button.fadeIn:Stop()
-    button.fadeOut:Stop()
-    button.fadeOutAlpha:SetFromAlpha(button:GetAlpha())
-    button.fadeOut:Play()
+    FadeTo(0)
 end
 
 local function UpdateVisibility()
     if not button or not FLM.DB then return end
     if FLM.DB.minimap.hide then
-        button.fadeIn:Stop()
-        button.fadeOut:Stop()
+        button.fadeTarget = nil
+        button:SetAlpha(0)
         button:Hide()
     else
         button:SetAlpha(0)
         button:Show()
-        FadeOut()
+        button.fadeTarget = nil
     end
 end
 
 local function UpdateHoverVisibility()
     if not button or not FLM.DB or FLM.DB.minimap.hide then return end
 
-    local overMinimap = Minimap and Minimap.IsMouseOver and Minimap:IsMouseOver()
+    local overMinimap = Minimap and Minimap.IsMouseOver and Minimap:IsMouseOver(HOVER_MARGIN)
     local overButton = button.IsMouseOver and button:IsMouseOver()
     if overMinimap or overButton then
         FadeIn()
@@ -84,27 +85,6 @@ local function CreateMinimapButton()
     button:SetFrameLevel(Minimap:GetFrameLevel() + 8)
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:RegisterForDrag("LeftButton")
-
-    button.fadeIn = button:CreateAnimationGroup()
-    local fadeInAlpha = button.fadeIn:CreateAnimation("Alpha")
-    fadeInAlpha:SetFromAlpha(0)
-    fadeInAlpha:SetToAlpha(1)
-    fadeInAlpha:SetDuration(0.22)
-    fadeInAlpha:SetSmoothing("OUT")
-    button.fadeInAlpha = fadeInAlpha
-
-    button.fadeOut = button:CreateAnimationGroup()
-    local fadeOutAlpha = button.fadeOut:CreateAnimation("Alpha")
-    fadeOutAlpha:SetFromAlpha(1)
-    fadeOutAlpha:SetToAlpha(0)
-    fadeOutAlpha:SetDuration(0.22)
-    fadeOutAlpha:SetSmoothing("OUT")
-    button.fadeOutAlpha = fadeOutAlpha
-    button.fadeOut:SetScript("OnFinished", function()
-        if button and button:GetAlpha() <= 0.01 then
-            button:Hide()
-        end
-    end)
 
     local overlay = button:CreateTexture(nil, "OVERLAY")
     overlay:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
@@ -148,9 +128,20 @@ local function CreateMinimapButton()
         end
     end)
 
-    button:SetScript("OnDragStart", function(self)
-        FadeIn()
-        self:SetScript("OnUpdate", function()
+    button:SetScript("OnUpdate", function(self, elapsed)
+        if self.fadeTarget ~= nil then
+            self.fadeElapsed = self.fadeElapsed + elapsed
+            local progress = math.min(self.fadeElapsed / FADE_DURATION, 1)
+            local eased = 1 - (1 - progress) * (1 - progress)
+            local alpha = self.fadeStart + (self.fadeTarget - self.fadeStart) * eased
+            self:SetAlpha(alpha)
+            if progress >= 1 then
+                self.fadeTarget = nil
+                if alpha <= 0 then self:Hide() end
+            end
+        end
+
+        if self.isDragging then
             local mx, my = Minimap:GetCenter()
             local scale = Minimap:GetEffectiveScale()
             local cx, cy = GetCursorPosition()
@@ -158,10 +149,15 @@ local function CreateMinimapButton()
             local angle = math.atan2(cy - my, cx - mx)
             FLM.DB.minimap.angle = math.deg(angle)
             UpdatePosition()
-        end)
+        end
+    end)
+
+    button:SetScript("OnDragStart", function(self)
+        self.isDragging = true
+        FadeIn()
     end)
     button:SetScript("OnDragStop", function(self)
-        self:SetScript("OnUpdate", nil)
+        self.isDragging = false
         ScheduleHoverCheck()
     end)
 
