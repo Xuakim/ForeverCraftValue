@@ -3,7 +3,7 @@
 ## Notes: Analyse les prix HDV et optimise les recettes de tous les métiers de fabrication
 ## Author: Forever CraftValue
 ## Version: 0.6.0
-## IconTexture: Interface\\Icons\\INV_Misc_ArmorKit_17
+## IconTexture: Interface\\AddOns\\ForeverCraftValue\\ForeverCraftValueIcon.tga
 ## SavedVariables: ForeverLeatherMasterDB
 
 Core.lua
