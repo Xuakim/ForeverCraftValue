@@ -171,3 +171,27 @@ end
 function FLM:ImportLeatherworkingRecipes()
     return self:ImportProfessionRecipes()
 end
+
+
+function FLM:ClearImportedRecipes()
+    if not self.DB then return end
+    StaticPopupDialogs["FCV_CLEAR_IMPORTED_RECIPES"] = {
+        text = "Supprimer toutes les recettes importées de tous les métiers ?\\nLes prix HDV et les autres réglages seront conservés.",
+        button1 = YES,
+        button2 = NO,
+        OnAccept = function()
+            FLM.DB.professions = {}
+            FLM.DB.recipes = {}
+            FLM.DB.activeProfession = nil
+            FLM.DB.recipeProfession = nil
+            FLM.DB.recipeImportTime = nil
+            FLM:Print("Toutes les recettes importées ont été supprimées. Les prix HDV sont conservés.")
+            FLM:Refresh()
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+    StaticPopup_Show("FCV_CLEAR_IMPORTED_RECIPES")
+end
