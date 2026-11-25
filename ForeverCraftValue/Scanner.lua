@@ -1,7 +1,5 @@
 local ADDON, FLM = ...
 local scannerFrame = CreateFrame("Frame")
-local replicateScanning = false
-local processIndex, totalAuctions, processed, validOffers = 0, 0, 0, 0
 local targetedQueue, targetedIndex = nil, 0
 local targetedPendingItemID, targetedDeadline, targetedNextQueryAt
 local targetedCompleted, targetedTotal = 0, 0
@@ -62,41 +60,8 @@ local function StartNextTargetedQuery()
     end
 end
 
-local function FinishReplicationScan()
-    replicateScanning = false
-    local prices, itemCount, offerCount = FLM:FinalizeAuctionPrices()
-    FLM.DB.prices = prices
-    FLM.DB.lastScan = time()
-    FLM.DB.lastScanCount = processed
-    FLM.DB.lastScanMode = "full"
-    FLM.DB.lastFullScan = FLM.DB.lastScan
-    FLM:Print(string.format("Scan complet terminé : %d annonces, %d offres, %d objets actualisés.", processed, offerCount or validOffers, itemCount))
-    FLM:Refresh()
-end
-
-local function ProcessReplicationBatch()
-    if not replicateScanning then return end
-    local limit = math.min(processIndex + 99, totalAuctions - 1)
-    local startedAt = GetTime()
-    while processIndex <= limit do
-        local name, texture, count, quality, usable, level, levelType,
-            minBid, minIncrement, buyoutPrice, bidAmount, highBidder,
-            bidderFullName, owner, ownerFullName, saleStatus, itemID =
-            C_AuctionHouse.GetReplicateItemInfo(processIndex)
-        if itemID and buyoutPrice and buyoutPrice > 0 and FLM:RecordAuctionPrice(itemID, buyoutPrice, count) then
-            validOffers = validOffers + 1
-        end
-        processed = processed + 1
-        processIndex = processIndex + 1
-        if GetTime() - startedAt >= 0.003 then break end
-    end
-    if processIndex >= totalAuctions then FinishReplicationScan() end
-end
-
 scannerFrame:SetScript("OnUpdate", function()
-    if replicateScanning then
-        ProcessReplicationBatch()
-    elseif targetedQueue then
+    if targetedQueue then
         if targetedPendingItemID then
             if GetTime() >= targetedDeadline then
                 targetedPendingItemID = nil
@@ -110,24 +75,11 @@ scannerFrame:SetScript("OnUpdate", function()
 end)
 
 local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("REPLICATE_ITEM_LIST_UPDATE")
 eventFrame:RegisterEvent("ITEM_SEARCH_RESULTS_UPDATED")
 eventFrame:RegisterEvent("ITEM_SEARCH_RESULTS_ADDED")
 eventFrame:RegisterEvent("COMMODITY_SEARCH_RESULTS_UPDATED")
 eventFrame:RegisterEvent("COMMODITY_SEARCH_RESULTS_ADDED")
 eventFrame:SetScript("OnEvent", function(_, event, payload)
-    if event == "REPLICATE_ITEM_LIST_UPDATE" then
-        if not FLM.waitingForReplication then return end
-        FLM.waitingForReplication = false
-        totalAuctions = C_AuctionHouse.GetNumReplicateItems() or 0
-        processIndex, processed, validOffers = 0, 0, 0
-        FLM.scanObservations = {}
-        replicateScanning = true
-        if totalAuctions == 0 then FinishReplicationScan()
-        else FLM:Print("Analyse du scan complet : " .. totalAuctions .. " annonces.") end
-        return
-    end
-
     local resultItemID
     if event == "ITEM_SEARCH_RESULTS_UPDATED" or event == "ITEM_SEARCH_RESULTS_ADDED" then
         if payload and payload.itemID then
@@ -148,13 +100,11 @@ eventFrame:SetScript("OnEvent", function(_, event, payload)
     end
 end)
 
-function FLM:StartAuctionScan(mode)
-    mode = mode or "targeted"
-    if mode ~= "targeted" and mode ~= "full" then return false end
+function FLM:StartAuctionScan()
     if not C_AuctionHouse or not AuctionHouseFrame or not AuctionHouseFrame:IsShown() then
         self:Print("Ouvre l'hôtel des ventes avant de lancer le scan.") return false
     end
-    if self.waitingForReplication or replicateScanning or targetedQueue then
+    if targetedQueue then
         self:Print("Un scan est déjà en cours.") return false
     end
     if mode == "targeted" then
@@ -176,22 +126,5 @@ function FLM:StartAuctionScan(mode)
         self:Print(string.format("Scan ciblé lancé : %d objets nécessaires aux recettes importées. Seuls ces objets sont recherchés.", #queue))
         return true
     end
-    if not C_AuctionHouse.ReplicateItems or not C_AuctionHouse.GetNumReplicateItems or not C_AuctionHouse.GetReplicateItemInfo then
-        self:Print("API de réplication HDV indisponible pour le scan complet.") return false
-    end
-    local lastFull = tonumber(self.DB.lastFullScan) or 0
-    local elapsed = time() - lastFull
-    if lastFull > 0 and elapsed < 900 then
-        local remaining = 900 - elapsed
-        self:Print(string.format("Attends encore %d min %d s avant un autre scan complet.", math.floor(remaining / 60), remaining % 60))
-        return false
-    end
-    self.waitingForReplication = true
-    local ok, err = pcall(C_AuctionHouse.ReplicateItems)
-    if not ok then
-        self.waitingForReplication = false
-        self:Print("Le serveur a refusé le scan complet : " .. tostring(err)) return false
-    end
-    self:Print("Scan complet demandé : récupération de toutes les annonces HDV.")
     return true
 end
