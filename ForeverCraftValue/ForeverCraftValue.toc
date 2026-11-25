@@ -2,7 +2,7 @@
 ## Title: Forever CraftValue - Multi-Profession
 ## Notes: Analyse les prix HDV et optimise les recettes de tous les métiers de fabrication
 ## Author: Forever CraftValue
-## Version: 1.0.0
+## Version: 1.0.1
 ## IconTexture: Interface\\AddOns\\ForeverCraftValue\\ForeverCraftValueIcon.tga
 ## SavedVariables: ForeverLeatherMasterDB
 
@@ -10,6 +10,7 @@ Core.lua
 Database.lua
 Profession.lua
 Scanner.lua
+Merchant.lua
 Optimizer.lua
 Minimap.lua
 Interface.lua
