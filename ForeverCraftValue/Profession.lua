@@ -133,11 +133,9 @@ function FLM:ImportProfessionRecipes()
                 end
             end
 
-            if #recipe.reagents > 0 then
-                imported[#imported + 1] = recipe
-            else
-                skipped = skipped + 1
-            end
+            -- Conserver aussi les recettes sans réactifs : elles doivent apparaître
+            -- dans la liste, même si leur coût de fabrication est nul ou spécial.
+            imported[#imported + 1] = recipe
         else
             skipped = skipped + 1
         end
