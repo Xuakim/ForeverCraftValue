@@ -34,7 +34,9 @@ end
 local function ProcessBatch()
     if not scanning then return end
 
-    local limit = math.min(processIndex + 249, totalAuctions - 1)
+    -- Limiter le travail par image pour éviter de figer l'interface sur les gros HDV.
+    local limit = math.min(processIndex + 99, totalAuctions - 1)
+    local startedAt = GetTime and GetTime() or 0
     while processIndex <= limit do
         local name, texture, count, quality, usable, level, levelType,
             minBid, minIncrement, buyoutPrice, bidAmount, highBidder,
@@ -51,6 +53,11 @@ local function ProcessBatch()
 
         processed = processed + 1
         processIndex = processIndex + 1
+
+        -- Budget de traitement d'environ 3 ms par image, avec un plafond de 100 annonces.
+        if GetTime and processIndex <= limit and (GetTime() - startedAt) >= 0.003 then
+            break
+        end
     end
 
     if processIndex >= totalAuctions then
