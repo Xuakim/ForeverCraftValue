@@ -200,7 +200,7 @@ function FLM:ShowWindow()
                 tile = false, edgeSize = 14,
                 insets = {left = 4, right = 4, top = 4, bottom = 4},
             })
-            window:SetBackdropColor(0.025, 0.038, 0.048, 0.86)
+            window:SetBackdropColor(0.025, 0.038, 0.048, 0.65)
             window:SetBackdropBorderColor(0.12, 0.34, 0.39, 1)
         end
         window:SetFrameStrata("DIALOG")
