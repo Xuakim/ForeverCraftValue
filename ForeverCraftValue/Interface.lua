@@ -115,6 +115,72 @@ local function OpenRecipe(recipeID)
     FLM:Print("Sélection directe indisponible sur ce client. Ouvre le métier concerné et réessaie.")
 end
 
+local detailWindow
+
+local function ShowRecipeDetails(deal)
+    if not detailWindow then
+        detailWindow = CreateFrame("Frame", "FCVRecipeDetailsFrame", UIParent, "BasicFrameTemplateWithInset")
+        detailWindow:SetSize(540, 390)
+        detailWindow:SetPoint("CENTER")
+        detailWindow:SetFrameStrata("DIALOG")
+        detailWindow:SetToplevel(true)
+        detailWindow.title = MakeFont(detailWindow, 13, "Détail des composants")
+        detailWindow.title:SetPoint("TOP", 0, -8)
+        detailWindow.title:SetTextColor(1, 0.78, 0.22)
+
+        detailWindow.summary = MakeFont(detailWindow, 11, "")
+        detailWindow.summary:SetPoint("TOPLEFT", 16, -34)
+        detailWindow.summary:SetWidth(500)
+        detailWindow.summary:SetJustifyH("LEFT")
+
+        detailWindow.scroll = CreateFrame("ScrollFrame", "FCVRecipeDetailsScroll", detailWindow, "UIPanelScrollFrameTemplate")
+        detailWindow.scroll:SetPoint("TOPLEFT", 14, -62)
+        detailWindow.scroll:SetPoint("BOTTOMRIGHT", -32, 14)
+        detailWindow.scroll:SetClipsChildren(true)
+        detailWindow.child = CreateFrame("Frame", nil, detailWindow.scroll)
+        detailWindow.child:SetWidth(480)
+        detailWindow.child:SetHeight(1)
+        detailWindow.scroll:SetScrollChild(detailWindow.child)
+        detailWindow.lines = {}
+    end
+
+    detailWindow.title:SetText(deal.name or "Détail des composants")
+    detailWindow.summary:SetText("Coût total des composants : " ..
+        (deal.materialCost and FLM:FormatMoneyIcons(deal.materialCost) or "incomplet"))
+
+    local details = deal.materialDetails or {}
+    for index, material in ipairs(details) do
+        if not detailWindow.lines[index] then
+            local line = MakeFont(detailWindow.child, 11, "", "GameFontHighlight")
+            line:SetPoint("TOPLEFT", 4, -(index - 1) * 48)
+            line:SetWidth(468)
+            line:SetHeight(44)
+            line:SetJustifyH("LEFT")
+            line:SetJustifyV("MIDDLE")
+            line:SetWordWrap(true)
+            detailWindow.lines[index] = line
+        end
+
+        local line = detailWindow.lines[index]
+        local name = material.name or ("Composant " .. tostring(material.itemID or "?"))
+        local quantity = tonumber(material.count) or 0
+        local unitPrice = material.unitCost and FLM:FormatMoneyIcons(material.unitCost) or "—"
+        local totalPrice = material.totalCost and FLM:FormatMoneyIcons(material.totalCost) or "—"
+        line:SetText(string.format("%s  x%s\nUnité : %s  |  Total : %s  |  Provenance : %s",
+            name, tostring(quantity), unitPrice, totalPrice, material.source or "Prix inconnu"))
+        line:SetTextColor(0.94, 0.88, 0.75)
+        line:Show()
+    end
+
+    for index = #details + 1, #detailWindow.lines do
+        detailWindow.lines[index]:Hide()
+    end
+    detailWindow.child:SetHeight(math.max(1, #details * 48))
+    detailWindow.scroll:SetVerticalScroll(0)
+    detailWindow:Show()
+    detailWindow:Raise()
+end
+
 local function CreateResultRow(parent, index)
     local row = CreateFrame("Frame", nil, parent)
     row:SetHeight(ROW_HEIGHT)
@@ -143,12 +209,13 @@ local function CreateResultRow(parent, index)
     row.name:SetJustifyH("LEFT")
     row.name:SetWordWrap(false)
     row.nameButton:SetScript("OnClick", function()
+        if row.deal then ShowRecipeDetails(row.deal) end
         if row.recipeID then OpenRecipe(row.recipeID) end
     end)
     row.nameButton:SetScript("OnEnter", function()
         row.name:SetTextColor(1, 0.78, 0.22)
         GameTooltip:SetOwner(row.nameButton, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Cliquer pour ouvrir cette recette")
+        GameTooltip:SetText("Cliquer pour voir les composants, leurs prix et leur provenance")
         GameTooltip:Show()
     end)
     row.nameButton:SetScript("OnLeave", function()
@@ -416,6 +483,7 @@ function FLM:RefreshWindow()
         row:SetPoint("TOPRIGHT", window.scrollChild, "TOPRIGHT", 0, -(i - 1) * ROW_HEIGHT)
         local deal = results[i]
         row.recipeID = deal.recipeID
+        row.deal = deal
         row.name:SetText(deal.name or ("Recette " .. tostring(deal.recipeID or "?")))
         if deal.pricesComplete then
             row.age:SetText("Prix de vente : " .. self:FormatPriceAge(deal.salePriceUpdated))
