@@ -121,7 +121,7 @@ function FLM:CalculateDeals()
     for _, recipe in ipairs(self.DB.recipes or {}) do
         local outputID = tonumber(recipe.outputItemID)
         local salePrice = outputID and self.DB.prices[outputID]
-        local totalCost, complete = 0, true
+        local totalCost, complete, missingMaterials = 0, true, 0
 
         for _, reagent in ipairs(recipe.reagents or {}) do
             local choices = reagent.choices or { reagent.itemID }
@@ -133,17 +133,18 @@ function FLM:CalculateDeals()
 
             if not bestChoice then
                 complete = false
-                break
+                missingMaterials = missingMaterials + 1
+            else
+                totalCost = totalCost + bestChoice * (tonumber(reagent.count) or 0)
             end
-            totalCost = totalCost + bestChoice * (tonumber(reagent.count) or 0)
         end
 
-        if complete and salePrice and outputID then
+        if outputID then
             local outputCount = math.max(1, tonumber(recipe.outputCount) or 1)
-            local grossSale = salePrice * outputCount
+            local grossSale = salePrice and (salePrice * outputCount) or nil
             local commissionRate = tonumber(self.DB.ahCut) or 0.05
-            local commission = math.floor(grossSale * commissionRate)
-            local netSale = grossSale - commission
+            local commission = grossSale and math.floor(grossSale * commissionRate) or nil
+            local netSale = grossSale and (grossSale - commission) or nil
 
             local duration = tonumber(self.DB.ahDuration) or 8
             local depositRate = duration == 2 and 0.05 or (duration == 24 and 0.60 or 0.20)
@@ -157,7 +158,8 @@ function FLM:CalculateDeals()
                 depositCost = math.max(1, math.floor(vendorPrice * depositRate * outputCount))
             end
 
-            local profit = netSale - totalCost
+            local hasCompletePrices = complete and netSale ~= nil
+            local profit = hasCompletePrices and (netSale - totalCost) or nil
 
             table.insert(results, {
                 recipeID = recipe.recipeID,
@@ -165,20 +167,28 @@ function FLM:CalculateDeals()
                 outputItemID = outputID,
                 outputCount = outputCount,
                 salePriceUpdated = self.DB.priceUpdated and self.DB.priceUpdated[outputID],
-                materialCost = totalCost,
+                materialCost = complete and totalCost or nil,
+                partialMaterialCost = totalCost,
+                missingMaterials = missingMaterials,
+                pricesComplete = hasCompletePrices,
                 grossSale = grossSale,
                 netSale = netSale,
                 commission = commission,
                 depositCost = depositCost,
                 auctionDuration = duration,
                 profit = profit,
-                margin = totalCost > 0 and (profit / totalCost) * 100 or 0,
+                margin = profit and totalCost > 0 and (profit / totalCost) * 100 or nil,
                 learned = recipe.learned,
             })
         end
     end
 
-    table.sort(results, function(a, b) return a.profit > b.profit end)
+    table.sort(results, function(a, b)
+        local pa, pb = tonumber(a.profit), tonumber(b.profit)
+        if pa == nil then return false end
+        if pb == nil then return true end
+        return pa > pb
+    end)
     self.DB.lastResults = results
     return results
 end
