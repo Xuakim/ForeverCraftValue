@@ -299,9 +299,8 @@ local function ShowRecipeDetails(deal)
             line:SetJustifyV("MIDDLE")
             line:SetWordWrap(true)
             local historyButton = MakeButton(detailWindow.child, "Courbe", 62, function()
-                local current = detailWindow.lines[index]
-                if current and current.material then
-                    ShowPriceHistory(current.material.itemID, current.material.name, 90)
+                if historyButton and historyButton.material then
+                    ShowPriceHistory(historyButton.material.itemID, historyButton.material.name, 90)
                 end
             end)
             historyButton:SetPoint("RIGHT", detailWindow.child, "RIGHT", -4, -(index - 1) * 52 - 2)
@@ -318,6 +317,7 @@ local function ShowRecipeDetails(deal)
             name, tostring(quantity), unitPrice, totalPrice, material.source or "Prix inconnu"))
         line:SetTextColor(0.94, 0.88, 0.75)
         line.material = material
+        line.historyButton.material = material
         line.historyButton:SetEnabled(tonumber(material.itemID) ~= nil)
         line.historyButton:Show()
         line:Show()
