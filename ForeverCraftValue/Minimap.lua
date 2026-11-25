@@ -22,7 +22,7 @@ local function FadeIn()
     button.fadeOut:Stop()
     button:Show()
     button.fadeIn:Stop()
-    button.fadeIn:GetAnimations():SetFromAlpha(button:GetAlpha())
+    button.fadeInAlpha:SetFromAlpha(button:GetAlpha())
     button.fadeIn:Play()
 end
 
@@ -30,7 +30,7 @@ local function FadeOut()
     if not button then return end
     button.fadeIn:Stop()
     button.fadeOut:Stop()
-    button.fadeOut:GetAnimations():SetFromAlpha(button:GetAlpha())
+    button.fadeOutAlpha:SetFromAlpha(button:GetAlpha())
     button.fadeOut:Play()
 end
 
@@ -91,6 +91,7 @@ local function CreateMinimapButton()
     fadeInAlpha:SetToAlpha(1)
     fadeInAlpha:SetDuration(0.22)
     fadeInAlpha:SetSmoothing("OUT")
+    button.fadeInAlpha = fadeInAlpha
 
     button.fadeOut = button:CreateAnimationGroup()
     local fadeOutAlpha = button.fadeOut:CreateAnimation("Alpha")
@@ -98,6 +99,7 @@ local function CreateMinimapButton()
     fadeOutAlpha:SetToAlpha(0)
     fadeOutAlpha:SetDuration(0.22)
     fadeOutAlpha:SetSmoothing("OUT")
+    button.fadeOutAlpha = fadeOutAlpha
     button.fadeOut:SetScript("OnFinished", function()
         if button and button:GetAlpha() <= 0.01 then
             button:Hide()
