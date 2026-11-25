@@ -17,7 +17,7 @@ function FLM:CaptureMerchantPrices()
 
     self.DB.merchantPrices = self.DB.merchantPrices or {}
     self.DB.merchantPriceUpdated = self.DB.merchantPriceUpdated or {}
-    local captured = 0
+    local captured, changed = 0, false
 
     for index = 1, GetMerchantNumItems() do
         local _, _, price, stackCount, _, isPurchasable, _, extendedCost, currencyID = GetMerchantItemInfo(index)
@@ -30,6 +30,7 @@ function FLM:CaptureMerchantPrices()
             and not extendedCost and (not currencyID or currencyID == 0) then
             local unitPrice = math.floor(price / stackCount)
             if unitPrice > 0 then
+                if self.DB.merchantPrices[itemID] ~= unitPrice then changed = true end
                 self.DB.merchantPrices[itemID] = unitPrice
                 self.DB.merchantPriceUpdated[itemID] = time()
                 captured = captured + 1
@@ -37,8 +38,8 @@ function FLM:CaptureMerchantPrices()
         end
     end
 
-    if captured > 0 then
-        self:Print(string.format("%d prix marchand(s) mémorisés.", captured))
+    if changed then
+        self:Print(string.format("Prix marchand actualisés (%d article(s)).", captured))
         self:Refresh()
     end
     return captured
