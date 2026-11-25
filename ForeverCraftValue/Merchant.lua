@@ -1,22 +1,21 @@
 local ADDON, FLM = ...
 
 local function ResolveMerchantItemID(index)
-    -- Certains clients exposent directement l'ID, même quand le lien n'est
-    -- pas encore disponible.
-    if GetMerchantItemID then
-        local itemID = _G.GetMerchantItemID(index)
-        if itemID then return tonumber(itemID) end
+    if type(_G.GetMerchantItemID) == "function" then
+        local ok, itemID = pcall(_G.GetMerchantItemID, index)
+        if ok and itemID then return tonumber(itemID) end
     end
-
-    local link
-    if GetMerchantItemLink then link = GetMerchantItemLink(index) end
-    if not link then return nil end
-
-    if GetItemInfoInstant then
-        local itemID = GetItemInfoInstant(link)
-        if itemID then return tonumber(itemID) end
+    if type(_G.GetMerchantItemLink) == "function" then
+        local ok, link = pcall(_G.GetMerchantItemLink, index)
+        if ok and link then
+            if type(_G.GetItemInfoInstant) == "function" then
+                local good, itemID = pcall(_G.GetItemInfoInstant, link)
+                if good and itemID then return tonumber(itemID) end
+            end
+            return tonumber(string.match(link, "item:(%d+)"))
+        end
     end
-    return tonumber(string.match(link, "item:(%d+)"))
+    return nil
 end
 
 local function GetCurrentMerchantIdentity()
@@ -37,13 +36,42 @@ function FLM:CaptureMerchantPrices(isNewVisit)
 
     local captured, seenItems, changed = 0, 0, false
     local resolvedItems, eligibleItems = 0, 0
-    local itemCount = (GetMerchantNumItems and GetMerchantItemInfo) and (GetMerchantNumItems() or 0) or 0
+    local itemCount = 0
+    if MerchantFrame and MerchantFrame:IsShown() then
+        itemCount = tonumber(MerchantFrame.itemAmount) or 0
+        if itemCount == 0 and type(MerchantFrame.GetItemInfo) == "function" then
+            for index = 1, 200 do
+                local ok, info = pcall(MerchantFrame.GetItemInfo, MerchantFrame, index)
+                if not ok or not info then break end
+                itemCount = index
+            end
+        end
+    end
+    if itemCount == 0 and type(_G.GetMerchantNumItems) == "function" then
+        local ok, count = pcall(_G.GetMerchantNumItems)
+        if ok then itemCount = tonumber(count) or 0 end
+    end
     -- Le compteur de visite reflète les emplacements affichés, même si le client
     -- n'a pas encore fourni les liens d'objets.
     seenItems = itemCount
     for index = 1, itemCount do
-        local _, _, price, stackCount, _, isPurchasable, _, extendedCost, currencyID = GetMerchantItemInfo(index)
+        local price, stackCount, isPurchasable, extendedCost, currencyID
+        if type(_G.GetMerchantItemInfo) == "function" then
+            local ok, _, _, p, stack, _, purchasable, _, ext, currency = pcall(_G.GetMerchantItemInfo, index)
+            if ok then price, stackCount, isPurchasable, extendedCost, currencyID = p, stack, purchasable, ext, currency end
+        end
         local itemID = ResolveMerchantItemID(index)
+        if (not itemID or not price or price == 0) and MerchantFrame and type(MerchantFrame.GetItemInfo) == "function" then
+            local ok, info = pcall(MerchantFrame.GetItemInfo, MerchantFrame, index)
+            if ok and type(info) == "table" then
+                itemID = itemID or tonumber(info.itemID)
+                price = price or info.price
+                stackCount = stackCount or info.stackCount
+                if info.isPurchasable ~= nil then isPurchasable = info.isPurchasable end
+                if info.hasExtendedCost ~= nil then extendedCost = info.hasExtendedCost end
+                currencyID = currencyID or info.currencyID
+            end
+        end
         if itemID then resolvedItems = resolvedItems + 1 end
         price = tonumber(price)
         stackCount = math.max(1, tonumber(stackCount) or 1)
