@@ -195,10 +195,10 @@ function FLM:ShowWindow()
         window:SetScale(0.85)
         if window.SetBackdrop then
             window:SetBackdrop({
-                bgFile = "Interface\\Buttons\\WHITE8X8",
-                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-                tile = false, edgeSize = 14,
-                insets = {left = 4, right = 4, top = 4, bottom = 4},
+                bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+                edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+                tile = true, tileSize = 32, edgeSize = 32,
+                insets = {left = 11, right = 11, top = 12, bottom = 11},
             })
             window:SetBackdropColor(0.12, 0.075, 0.038, 0.97)
             window:SetBackdropBorderColor(0.78, 0.55, 0.19, 1)
@@ -331,7 +331,7 @@ function FLM:RefreshWindow()
             button:SetSize(48, 48)
             button.tile = button:CreateTexture(nil, "BACKGROUND")
             button.tile:SetAllPoints()
-            button.tile:SetColorTexture(0.045, 0.075, 0.09, 0.95)
+            button.tile:SetColorTexture(0.16, 0.095, 0.04, 0.98)
             button.icon = button:CreateTexture(nil, "ARTWORK")
             button.icon:SetPoint("TOPLEFT", 4, -4)
             button.icon:SetPoint("BOTTOMRIGHT", -4, 4)
