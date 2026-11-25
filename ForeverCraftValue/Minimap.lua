@@ -7,7 +7,7 @@ local button
 local function UpdatePosition()
     if not button or not FLM.DB then return end
     local angle = math.rad(tonumber(FLM.DB.minimap.angle) or 220)
-    local radius = 80
+    local radius = 92
     local x = math.cos(angle) * radius
     local y = math.sin(angle) * radius
     button:ClearAllPoints()
