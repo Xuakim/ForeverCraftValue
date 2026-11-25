@@ -218,6 +218,11 @@ end
 
 local merchantCollectorWindow
 
+function FLM:RefreshMerchantCollector()
+    if not merchantCollectorWindow or not merchantCollectorWindow:IsShown() then return end
+    self:ShowMerchantCollector()
+end
+
 function FLM:ShowMerchantCollector()
     if not merchantCollectorWindow then
         local frame = CreateFrame("Frame", "FCVMerchantCollectorFrame", UIParent, "BasicFrameTemplateWithInset")
