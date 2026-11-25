@@ -243,7 +243,7 @@ local function ShowPriceHistory(itemID, itemName, days)
                 segment:SetColorTexture(0.25, 0.82, 0.95, 1)
                 segment:SetSize(math.sqrt(dx * dx + dy * dy), 2)
                 segment:SetPoint("CENTER", canvas, "BOTTOMLEFT", (x + previousX) / 2, (y + previousY) / 2)
-                segment:SetRotation(-math.atan2(dy, dx))
+                segment:SetRotation(math.atan2(dy, dx))
                 canvas.lines[#canvas.lines + 1] = segment
             end
             local dot = canvas:CreateTexture(nil, "OVERLAY")
