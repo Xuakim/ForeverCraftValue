@@ -234,6 +234,8 @@ function FLM:CalculateDeals()
                 profit = profit,
                 margin = profit and totalCost > 0 and (profit / totalCost) * 100 or nil,
                 learned = recipe.learned,
+                canSkillUp = recipe.canSkillUp,
+                relativeDifficulty = recipe.relativeDifficulty,
             })
         end
     end
