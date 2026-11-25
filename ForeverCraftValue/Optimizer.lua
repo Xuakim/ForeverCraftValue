@@ -135,19 +135,6 @@ end
 function FLM:CalculateDeals()
     if not self.DB then return {} end
 
-    -- Pour les coûts des matériaux, comparer le prix HDV au prix marchand.
-    -- Les prix marchands ne remplacent jamais les prix HDV de vente des produits.
-    local effectivePrices = {}
-    for itemID, price in pairs(self.DB.prices or {}) do
-        effectivePrices[tonumber(itemID) or itemID] = tonumber(price)
-    end
-    for itemID, price in pairs(self.DB.merchantPrices or {}) do
-        itemID, price = tonumber(itemID), tonumber(price)
-        if itemID and price and price > 0
-            and (not effectivePrices[itemID] or price < effectivePrices[itemID]) then
-            effectivePrices[itemID] = price
-        end
-    end
 
     -- Les recettes de tous les métiers sont prises en compte pour les composants,
     -- même si l'utilisateur consulte actuellement un autre métier.
